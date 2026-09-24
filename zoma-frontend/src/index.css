@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+@theme {
+  /* Palette ZOMA SERVICES — CDC section 13 */
+  --color-primary: #0B3D91;    /* Bleu marine : bandeaux, boutons principaux, navigation */
+  --color-secondary: #0685F1;  /* Bleu ciel : accents, liens, éléments actifs */
+  --color-success: #25D366;    /* Vert (WhatsApp + statut "résolu") */
+  --color-warning: #F5A623;    /* Ambre : statut "en cours" */
+  --color-danger: #E63946;     /* Rouge : statut "nouveau", erreurs */
+  --color-background: #F7F9FC; /* Gris clair : fond secondaire, cartes */
+  --color-border: #E2E8F0;     /* Gris bordure : séparateurs */
+  --color-muted: #4A5568;      /* Gris texte : texte secondaire */
+  --color-text: #1A202C;       /* Noir bleuté : texte principal */
+}

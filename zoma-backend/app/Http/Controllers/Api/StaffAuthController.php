@@ -1,4 +1,5 @@
 <?php
+// app/Http/Controllers/Api/StaffAuthController.php
 
 namespace App\Http\Controllers\Api;
 
@@ -10,7 +11,7 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Connexion des gérants et administrateurs (pseudo + PIN, même mécanisme
- * que les agents — voir AgentAuthController et le trait HasPinAuthentication).
+ * que les agents — voir AgentAuthController et HasPinAuthentication).
  */
 class StaffAuthController extends Controller
 {
@@ -23,7 +24,6 @@ class StaffAuthController extends Controller
 
         $user = User::where('pseudo', $data['pseudo'])->first();
 
-        // Message volontairement identique pour pseudo inconnu ou PIN faux.
         $identifiantsInvalides = fn () => ValidationException::withMessages([
             'pseudo' => 'Identifiants incorrects.',
         ]);
@@ -39,9 +39,10 @@ class StaffAuthController extends Controller
         }
 
         if ($user->estVerrouille()) {
-            throw ValidationException::withMessages([
-                'pseudo' => 'Compte temporairement verrouillé suite à plusieurs échecs. Réessayez plus tard.',
-            ]);
+            return response()->json([
+                'message' => 'Compte temporairement verrouillé suite à plusieurs échecs.',
+                'locked_until' => $user->locked_until->toIso8601String(),
+            ], 423);
         }
 
         if (! Hash::check($data['pin'], $user->pin)) {
@@ -60,9 +61,9 @@ class StaffAuthController extends Controller
                 'id' => $user->id,
                 'nom' => $user->nom,
                 'pseudo' => $user->pseudo,
-                'role' => $user->role, // 'gerant' ou 'admin'
+                'role' => $user->role,
                 'agence_id' => $user->agence_id,
-                'agence' => $user->agence?->nom, // null pour un admin (portée réseau)
+                'agence' => $user->agence?->nom,
             ],
         ]);
     }

@@ -1,4 +1,5 @@
 <?php
+// app/Http/Controllers/Api/AgentAuthController.php
 
 namespace App\Http\Controllers\Api;
 
@@ -10,8 +11,8 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Connexion des agents (pseudo + PIN, CDC section 3).
- * Distinct de l'auth gérants/admins (StaffAuthController, à faire ensuite),
- * même si le mécanisme pseudo+PIN est identique.
+ * Distinct de l'auth gérants/admins (StaffAuthController), même si le
+ * mécanisme pseudo+PIN est identique.
  */
 class AgentAuthController extends Controller
 {
@@ -40,10 +41,14 @@ class AgentAuthController extends Controller
             ]);
         }
 
+        // 423 (Locked) plutôt qu'une erreur de validation classique : on
+        // renvoie locked_until pour que le frontend affiche un temps
+        // d'attente précis plutôt qu'un vague "réessayez plus tard".
         if ($agent->estVerrouille()) {
-            throw ValidationException::withMessages([
-                'pseudo' => 'Compte temporairement verrouillé suite à plusieurs échecs. Réessayez plus tard.',
-            ]);
+            return response()->json([
+                'message' => 'Compte temporairement verrouillé suite à plusieurs échecs.',
+                'locked_until' => $agent->locked_until->toIso8601String(),
+            ], 423);
         }
 
         if (! Hash::check($data['pin'], $agent->pin)) {
@@ -73,5 +78,25 @@ class AgentAuthController extends Controller
         $request->user()->currentAccessToken()->delete();
 
         return response()->json(['message' => 'Déconnecté.']);
+    }
+
+    /**
+     * Renvoie l'agent authentifié via son token — sert à restaurer la
+     * session côté frontend après un rafraîchissement de page, sans
+     * redemander pseudo+PIN tant que le token est valide.
+     */
+    public function me(Request $request)
+    {
+        $agent = $request->user();
+
+        return response()->json([
+            'agent' => [
+                'id' => $agent->id,
+                'nom' => $agent->nom,
+                'pseudo' => $agent->pseudo,
+                'agence_id' => $agent->agence_id,
+                'agence' => $agent->agence->nom,
+            ],
+        ]);
     }
 }
