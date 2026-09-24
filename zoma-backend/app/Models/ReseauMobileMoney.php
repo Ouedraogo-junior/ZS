@@ -23,6 +23,11 @@ class ReseauMobileMoney extends Model
         return $this->hasMany(Transaction::class);
     }
 
+    public function releves(): HasMany
+    {
+        return $this->hasMany(Releve::class);
+    }
+
     public function estActif(): bool
     {
         return $this->statut === 'actif';
