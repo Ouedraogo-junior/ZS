@@ -4,6 +4,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Agence;
 use App\Models\PlateformeParis;
 use App\Models\ReseauMobileMoney;
 
@@ -26,6 +27,14 @@ class ReferenceController extends Controller
     {
         return response()->json(
             PlateformeParis::actifs()->select('id', 'nom')->orderBy('nom')->get()
+        );
+    }
+
+    /** Utile pour les formulaires admin (rattacher un gérant/agent à une agence). */
+    public function agences()
+    {
+        return response()->json(
+            Agence::where('statut', 'active')->select('id', 'nom', 'ville')->orderBy('nom')->get()
         );
     }
 }

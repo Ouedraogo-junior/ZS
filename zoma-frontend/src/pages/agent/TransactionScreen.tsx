@@ -1,6 +1,6 @@
 // src/pages/agent/TransactionScreen.tsx
 import { useEffect, useState } from 'react'
-import { ArrowDownCircle, ArrowUpCircle, CheckCircle2, Delete, Loader2, LogOut } from 'lucide-react'
+import { ArrowDownCircle, ArrowUpCircle, Delete, LogOut, UserCog } from 'lucide-react'
 import {
   createTransaction,
   getErrorMessage,
@@ -14,9 +14,10 @@ interface TransactionScreenProps {
   agentName: string
   agencyName: string
   onLogout: () => void
+  onEditProfile: () => void
 }
 
-export function TransactionScreen({ agentName, agencyName, onLogout }: TransactionScreenProps) {
+export function TransactionScreen({ agentName, agencyName, onLogout, onEditProfile }: TransactionScreenProps) {
   // Listes de référence, chargées depuis le backend au montage — jamais
   // codées en dur (CDC section 13/14).
   const [reseaux, setReseaux] = useState<ReferenceItem[] | null>(null)
@@ -72,7 +73,7 @@ export function TransactionScreen({ agentName, agencyName, onLogout }: Transacti
 
   if (loadError) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 gap-3 text-center">
+      <div className="min-h-screen min-h-dvh bg-white flex flex-col items-center justify-center px-6 gap-3 text-center">
         <p className="text-danger font-semibold">{loadError}</p>
         <button onClick={() => window.location.reload()} className="text-secondary text-sm underline">
           Réessayer
@@ -83,22 +84,49 @@ export function TransactionScreen({ agentName, agencyName, onLogout }: Transacti
 
   if (!reseaux || !plateformes) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <Loader2 className="animate-spin text-primary" size={32} />
+      <div className="min-h-screen min-h-dvh bg-background flex flex-col">
+        <div className="bg-gradient-to-br from-primary to-primary-dark px-5 pt-5 pb-5 h-[88px]" />
+        <div className="flex-1 px-4 pt-4 flex flex-col gap-4 animate-pulse">
+          <div className="h-12 bg-border/60 rounded-2xl" />
+          <div className="flex gap-3">
+            <div className="h-16 flex-1 bg-border/60 rounded-2xl" />
+            <div className="h-16 flex-1 bg-border/60 rounded-2xl" />
+          </div>
+          <div className="flex gap-2">
+            <div className="h-11 w-20 bg-border/60 rounded-xl" />
+            <div className="h-11 w-24 bg-border/60 rounded-xl" />
+            <div className="h-11 w-16 bg-border/60 rounded-xl" />
+          </div>
+          <div className="h-20 bg-border/60 rounded-2xl" />
+          <div className="grid grid-cols-3 gap-2">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div key={i} className="h-[52px] bg-border/60 rounded-xl" />
+            ))}
+          </div>
+        </div>
       </div>
     )
   }
 
   if (saved) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 gap-6">
-        <div className="w-24 h-24 rounded-full bg-success/10 flex items-center justify-center">
-          <CheckCircle2 className="text-success" size={48} strokeWidth={2.5} />
+      <div className="min-h-screen min-h-dvh bg-white flex flex-col items-center justify-center px-6 gap-6">
+        <div className="w-24 h-24 rounded-full bg-success/10 flex items-center justify-center animate-pop-in">
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M5 12.5l4.5 4.5L19 7"
+              stroke="var(--color-success)"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="animate-draw-check"
+            />
+          </svg>
         </div>
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-text">Transaction enregistrée</h2>
+          <h2 className="font-display text-2xl font-bold text-text">Transaction enregistrée</h2>
           <p className="text-muted mt-2 text-sm">Transaction n°{saved.id}</p>
-          <p className={`font-bold text-2xl mt-3 ${saved.type === 'depot' ? 'text-primary' : 'text-danger'}`}>
+          <p className={`font-display font-bold text-2xl mt-3 ${saved.type === 'depot' ? 'text-primary' : 'text-danger'}`}>
             {saved.montant.toLocaleString('fr-FR')} F CFA
           </p>
           <p className="text-sm text-muted mt-1">
@@ -107,7 +135,7 @@ export function TransactionScreen({ agentName, agencyName, onLogout }: Transacti
         </div>
         <button
           onClick={() => setSaved(null)}
-          className="w-full max-w-xs h-14 rounded-2xl bg-primary text-white font-bold text-base transition-all"
+          className="font-display w-full max-w-xs h-14 rounded-2xl bg-primary text-white font-bold text-base shadow-lg shadow-primary/25 transition-all duration-150 active:scale-[0.98]"
           style={{ touchAction: 'manipulation' }}
         >
           Nouvelle transaction
@@ -117,22 +145,32 @@ export function TransactionScreen({ agentName, agencyName, onLogout }: Transacti
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <div className="bg-primary px-5 pt-5 pb-5">
+    <div className="min-h-screen min-h-dvh bg-background flex flex-col">
+      <div className="bg-gradient-to-br from-primary to-primary-dark px-5 pt-5 pb-5">
         <div className="flex items-start justify-between">
           <div>
             <p className="text-white/60 text-xs">Bonjour,</p>
-            <p className="text-white font-bold text-base">{agentName}</p>
+            <p className="font-display text-white font-bold text-base">{agentName}</p>
             <p className="text-secondary text-xs font-medium">{agencyName}</p>
           </div>
-          <button
-            onClick={onLogout}
-            className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-white/80 active:bg-white/20 transition-colors"
-            style={{ touchAction: 'manipulation' }}
-            aria-label="Déconnexion"
-          >
-            <LogOut size={18} />
-          </button>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={onEditProfile}
+              className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-white/80 transition-all duration-150 active:scale-90 active:bg-white/20"
+              style={{ touchAction: 'manipulation' }}
+              aria-label="Mon profil"
+            >
+              <UserCog size={18} />
+            </button>
+            <button
+              onClick={onLogout}
+              className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-white/80 transition-all duration-150 active:scale-90 active:bg-white/20"
+              style={{ touchAction: 'manipulation' }}
+              aria-label="Déconnexion"
+            >
+              <LogOut size={18} />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -147,7 +185,7 @@ export function TransactionScreen({ agentName, agencyName, onLogout }: Transacti
             <button
               key={t}
               onClick={() => setType(t)}
-              className={`flex-1 h-13 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-1.5 ${
+              className={`font-display flex-1 h-13 py-3 rounded-xl font-bold text-sm transition-all duration-150 active:scale-[0.97] flex items-center justify-center gap-1.5 ${
                 type === t
                   ? t === 'depot' ? 'bg-primary text-white shadow' : 'bg-danger text-white shadow'
                   : 'text-muted'
@@ -168,8 +206,10 @@ export function TransactionScreen({ agentName, agencyName, onLogout }: Transacti
               <button
                 key={r.id}
                 onClick={() => setReseauId(r.id)}
-                className={`flex-1 h-16 rounded-2xl border-2 flex items-center justify-center transition-all ${
-                  reseauId === r.id ? 'border-secondary bg-secondary/10' : 'border-border bg-white'
+                className={`flex-1 h-16 rounded-2xl border flex items-center justify-center transition-all duration-150 active:scale-[0.97] ${
+                  reseauId === r.id
+                    ? 'border-secondary bg-secondary/10 ring-2 ring-secondary/30'
+                    : 'border-border bg-white shadow-sm'
                 }`}
                 style={{ touchAction: 'manipulation' }}
               >
@@ -187,8 +227,10 @@ export function TransactionScreen({ agentName, agencyName, onLogout }: Transacti
               <button
                 key={p.id}
                 onClick={() => setPlateformeId(p.id)}
-                className={`px-4 h-11 rounded-xl border-2 text-sm font-semibold transition-all ${
-                  plateformeId === p.id ? 'border-secondary bg-secondary text-white' : 'border-border bg-white text-text'
+                className={`px-4 h-11 rounded-xl border text-sm font-semibold transition-all duration-150 active:scale-[0.97] ${
+                  plateformeId === p.id
+                    ? 'border-secondary bg-secondary text-white shadow-sm shadow-secondary/30'
+                    : 'border-border bg-white text-text shadow-sm'
                 }`}
                 style={{ touchAction: 'manipulation' }}
               >
@@ -202,7 +244,7 @@ export function TransactionScreen({ agentName, agencyName, onLogout }: Transacti
         <div>
           <p className="text-muted text-xs font-semibold uppercase tracking-wider mb-2">Montant (F CFA)</p>
           <div className="bg-white rounded-2xl px-5 py-4 text-right shadow-sm mb-2">
-            <span className="text-4xl font-bold text-primary">
+            <span className="font-display text-4xl font-bold text-primary">
               {amount ? parseInt(amount, 10).toLocaleString('fr-FR') : '0'}
             </span>
             <span className="text-muted text-sm ml-2">F CFA</span>
@@ -216,7 +258,7 @@ export function TransactionScreen({ agentName, agencyName, onLogout }: Transacti
                   else if (k === '000') setAmount(a => a + '000')
                   else setAmount(a => a.length < 9 ? a + k : a)
                 }}
-                className="h-[52px] rounded-xl bg-white shadow-sm text-primary font-bold text-lg active:bg-primary active:text-white transition-all flex items-center justify-center"
+                className="font-display h-[52px] rounded-xl bg-white shadow-sm text-primary font-bold text-lg transition-all duration-100 active:scale-90 active:bg-primary active:text-white active:shadow-none flex items-center justify-center"
                 style={{ touchAction: 'manipulation' }}
               >
                 {k === 'delete' ? <Delete size={20} /> : k}
@@ -233,7 +275,7 @@ export function TransactionScreen({ agentName, agencyName, onLogout }: Transacti
             value={phone}
             onChange={e => setPhone(e.target.value)}
             placeholder="07 00 00 00 00"
-            className="w-full h-14 px-4 rounded-2xl bg-white border-2 border-border text-text text-lg focus:border-secondary focus:outline-none"
+            className="w-full h-14 px-4 rounded-2xl bg-white border-2 border-border text-text text-lg transition-all duration-150 focus:border-secondary focus:outline-none focus:ring-4 focus:ring-secondary/15"
           />
         </div>
 
@@ -247,15 +289,15 @@ export function TransactionScreen({ agentName, agencyName, onLogout }: Transacti
             value={ref}
             onChange={e => setRef(e.target.value)}
             placeholder="BT2024..."
-            className="w-full h-14 px-4 rounded-2xl bg-white border-2 border-border text-text text-lg focus:border-secondary focus:outline-none"
+            className="w-full h-14 px-4 rounded-2xl bg-white border-2 border-border text-text text-lg transition-all duration-150 focus:border-secondary focus:outline-none focus:ring-4 focus:ring-secondary/15"
           />
         </div>
 
         <button
           onClick={handleSave}
           disabled={!canSubmit}
-          className={`w-full h-16 rounded-2xl text-white font-bold text-lg disabled:opacity-40 transition-all ${
-            type === 'depot' ? 'bg-primary' : 'bg-danger'
+          className={`font-display w-full h-16 rounded-2xl text-white font-bold text-lg transition-all duration-150 active:scale-[0.98] disabled:opacity-40 disabled:shadow-none ${
+            type === 'depot' ? 'bg-primary shadow-lg shadow-primary/25' : 'bg-danger shadow-lg shadow-danger/25'
           }`}
           style={{ touchAction: 'manipulation' }}
         >

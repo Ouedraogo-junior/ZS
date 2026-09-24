@@ -1,73 +1,63 @@
 // src/pages/agent/AgentApp.tsx
-import { useCallback, useEffect, useState } from 'react'
-import { Loader2 } from 'lucide-react'
-import { agentLogout, agentMe, getToken, setToken, setUnauthorizedHandler, type AgentSession } from '@/lib/api'
-import { useIdleTimeout } from '@/lib/useIdleTimeout'
-import { LoginScreen } from './LoginScreen'
+//
+// Ne gère plus sa propre session (connexion, restauration, inactivité) —
+// tout ça vit maintenant dans App.tsx, commun à tous les rôles. Ici,
+// uniquement la navigation entre les écrans une fois connecté.
+import { useState } from 'react'
+import { ArrowLeftRight, FileEdit, History } from 'lucide-react'
 import { TransactionScreen } from './TransactionScreen'
+import { HistoryScreen } from './HistoryScreen'
+import { HandoverScreen } from './HandoverScreen'
 
-export default function AgentApp() {
-  const [session, setSession] = useState<AgentSession | null>(null)
-  // Le temps de vérifier un éventuel token déjà en localStorage, pour ne
-  // pas afficher l'écran de connexion en un éclair avant de le remplacer.
-  const [checkingSession, setCheckingSession] = useState(true)
+type AgentScreen = 'transaction' | 'history' | 'handover'
 
-  // Si un futur appel API renvoie 401 (token expiré ou révoqué), on revient
-  // automatiquement à l'écran de connexion.
-  useEffect(() => {
-    setUnauthorizedHandler(() => setSession(null))
-    return () => setUnauthorizedHandler(null)
-  }, [])
+const NAV_TABS = [
+  { id: 'transaction', label: 'Transaction', icon: FileEdit },
+  { id: 'history', label: 'Historique', icon: History },
+  { id: 'handover', label: 'Relève', icon: ArrowLeftRight },
+] as const
 
-  // Restauration de session après rechargement de page : si un token est
-  // déjà stocké, on vérifie qu'il est toujours valide via /agent/me plutôt
-  // que de redemander pseudo+PIN à chaque F5.
-  useEffect(() => {
-    const token = getToken()
-    if (!token) {
-      setCheckingSession(false)
-      return
-    }
-    agentMe()
-      .then(({ agent }) => setSession({ token, agent }))
-      .catch(() => setToken(null))
-      .finally(() => setCheckingSession(false))
-  }, [])
+interface AgentAppProps {
+  agentName: string
+  agencyName: string
+  onLogout: () => void
+  onEditProfile: () => void
+}
 
-  const handleLogout = useCallback(async () => {
-    try {
-      await agentLogout()
-    } catch {
-      // Le token est peut-être déjà invalide côté serveur — on déconnecte
-      // quand même localement, l'important est que l'agent ne reste pas coincé.
-    }
-    setToken(null)
-    setSession(null)
-  }, [])
-
-  // Déconnexion locale après 60 min d'inactivité — même durée que le
-  // contrôle backend (CheckIdleTimeout::MAX_INACTIVITE_MINUTES). Actif
-  // seulement une fois connecté.
-  useIdleTimeout(60, handleLogout, session !== null)
-
-  if (checkingSession) {
-    return (
-      <div className="flex justify-center bg-border min-h-screen">
-        <div className="w-full max-w-[390px] min-h-screen bg-white shadow-2xl relative flex items-center justify-center">
-          <Loader2 className="animate-spin text-primary" size={32} />
-        </div>
-      </div>
-    )
-  }
+export default function AgentApp({ agentName, agencyName, onLogout, onEditProfile }: AgentAppProps) {
+  const [screen, setScreen] = useState<AgentScreen>('transaction')
 
   return (
-    <div className="flex justify-center bg-border min-h-screen">
-      <div className="w-full max-w-[390px] min-h-screen bg-white shadow-2xl relative">
-        {!session ? (
-          <LoginScreen onLogin={(s) => { setToken(s.token); setSession(s) }} />
-        ) : (
-          <TransactionScreen agentName={session.agent.nom} agencyName={session.agent.agence} onLogout={handleLogout} />
+    <div className="flex justify-center bg-gradient-to-br from-background to-border min-h-screen min-h-dvh">
+      <div className="w-full max-w-[390px] min-h-screen min-h-dvh bg-white shadow-2xl relative">
+        {screen === 'transaction' && (
+          <TransactionScreen agentName={agentName} agencyName={agencyName} onLogout={onLogout} onEditProfile={onEditProfile} />
         )}
+        {screen === 'history' && <HistoryScreen agencyName={agencyName} onLogout={onLogout} onEditProfile={onEditProfile} />}
+        {screen === 'handover' && <HandoverScreen agentName={agentName} onLogout={onLogout} onEditProfile={onEditProfile} />}
+
+        <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] bg-white border-t border-border z-40 pb-[env(safe-area-inset-bottom)]">
+          <div className="flex">
+            {NAV_TABS.map(tab => {
+              const Icon = tab.icon
+              const active = screen === tab.id
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setScreen(tab.id)}
+                  className={`flex-1 py-3 flex flex-col items-center gap-1 transition-colors ${
+                    active ? 'text-primary' : 'text-muted'
+                  }`}
+                  style={{ touchAction: 'manipulation' }}
+                >
+                  <Icon size={20} strokeWidth={active ? 2.5 : 2} />
+                  <span className="text-xs font-medium">{tab.label}</span>
+                  <div className={`h-0.5 rounded-full transition-all ${active ? 'w-5 bg-primary' : 'w-0'}`} />
+                </button>
+              )
+            })}
+          </div>
+        </div>
       </div>
     </div>
   )

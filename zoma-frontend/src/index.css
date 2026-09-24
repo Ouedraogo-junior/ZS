@@ -1,14 +1,49 @@
+/* src/index.css */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800;900&display=swap');
 @import "tailwindcss";
 
 @theme {
   /* Palette ZOMA SERVICES — CDC section 13 */
-  --color-primary: #0B3D91;    /* Bleu marine : bandeaux, boutons principaux, navigation */
-  --color-secondary: #0685F1;  /* Bleu ciel : accents, liens, éléments actifs */
-  --color-success: #25D366;    /* Vert (WhatsApp + statut "résolu") */
-  --color-warning: #F5A623;    /* Ambre : statut "en cours" */
-  --color-danger: #E63946;     /* Rouge : statut "nouveau", erreurs */
-  --color-background: #F7F9FC; /* Gris clair : fond secondaire, cartes */
-  --color-border: #E2E8F0;     /* Gris bordure : séparateurs */
-  --color-muted: #4A5568;      /* Gris texte : texte secondaire */
-  --color-text: #1A202C;       /* Noir bleuté : texte principal */
+  --color-primary: #0B3D91;      /* Bleu marine : bandeaux, boutons principaux, navigation */
+  --color-primary-dark: #082C6B; /* Bleu marine foncé : dégradés, états pressés */
+  --color-secondary: #0685F1;    /* Bleu ciel : accents, liens, éléments actifs */
+  --color-success: #25D366;      /* Vert (WhatsApp + statut "résolu") */
+  --color-warning: #F5A623;      /* Ambre : statut "en cours" */
+  --color-danger: #E63946;       /* Rouge : statut "nouveau", erreurs */
+  --color-background: #F7F9FC;   /* Gris clair : fond secondaire, cartes */
+  --color-border: #E2E8F0;       /* Gris bordure : séparateurs */
+  --color-muted: #4A5568;        /* Gris texte : texte secondaire */
+  --color-text: #1A202C;         /* Noir bleuté : texte principal */
+
+  /* Typographie */
+  --font-sans: "Inter", ui-sans-serif, sans-serif;     /* Police par défaut (corps de texte) */
+  --font-display: "Poppins", ui-sans-serif, sans-serif; /* Titres, marque, montants */
+}
+
+/* Animations pour l'écran de confirmation de transaction */
+@keyframes pop-in {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); }
+}
+.animate-pop-in {
+  animation: pop-in 0.35s ease-out forwards;
+}
+
+@keyframes draw-check {
+  to { stroke-dashoffset: 0; }
+}
+.animate-draw-check {
+  stroke-dasharray: 30;
+  stroke-dashoffset: 30;
+  animation: draw-check 0.4s 0.15s ease-out forwards;
+}
+
+/* Safari iOS zoome automatiquement sur un champ focus dont la police fait
+   moins de 16px. Règle globale plutôt que champ par champ : couvre aussi
+   les formulaires à venir, sans qu'on ait à y repenser à chaque fois. */
+@layer base {
+  input, select, textarea {
+    font-size: 16px;
+  }
 }

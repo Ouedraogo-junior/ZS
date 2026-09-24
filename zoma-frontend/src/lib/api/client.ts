@@ -1,4 +1,9 @@
-// src/lib/api.ts
+// src/lib/api/client.ts
+//
+// Le "plumbing" partagé : URL de base, gestion du token, wrapper fetch,
+// erreurs. Les fichiers par domaine (auth.ts, transactions.ts, ...)
+// s'appuient dessus mais ne le redéfinissent jamais.
+
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api'
 
 const TOKEN_KEY = 'zoma_token'
@@ -81,7 +86,12 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     }
 
     throw new ApiError(
-      body?.message ?? fallbackMessage(response.status),
+      // Pour une erreur serveur (5xx), on ignore body.message : en mode
+      // debug, Laravel y met le message d'exception brut (ex. "Method
+      // ...::load does not exist"), jamais destiné à l'utilisateur. Pour
+      // les autres statuts (validation, 401, 403, 423...), ce message
+      // est écrit pour être affiché tel quel.
+      response.status >= 500 ? fallbackMessage(response.status) : (body?.message ?? fallbackMessage(response.status)),
       response.status,
       body?.errors,
       body?.locked_until
@@ -95,77 +105,4 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
 export function getErrorMessage(err: unknown): string {
   if (err instanceof ApiError) return err.message
   return 'Une erreur inattendue est survenue.'
-}
-
-// ── Auth agent ───────────────────────────────────────────────────────────
-
-export interface AgentSession {
-  token: string
-  agent: {
-    id: number
-    nom: string
-    pseudo: string
-    agence_id: number
-    agence: string
-  }
-}
-
-export function agentLogin(pseudo: string, pin: string): Promise<AgentSession> {
-  return apiFetch<AgentSession>('/agent/login', {
-    method: 'POST',
-    body: JSON.stringify({ pseudo, pin }),
-  })
-}
-
-export function agentLogout(): Promise<{ message: string }> {
-  return apiFetch('/agent/logout', { method: 'POST' })
-}
-
-/** Restaure la session à partir du token stocké (après rechargement de page). */
-export function agentMe(): Promise<{ agent: AgentSession['agent'] }> {
-  return apiFetch('/agent/me')
-}
-
-// ── Listes de référence ──────────────────────────────────────────────────
-
-export interface ReferenceItem {
-  id: number
-  nom: string
-}
-
-export function getReseauxMobileMoney(): Promise<ReferenceItem[]> {
-  return apiFetch('/reference/reseaux-mobile-money')
-}
-
-export function getPlateformesParis(): Promise<ReferenceItem[]> {
-  return apiFetch('/reference/plateformes-paris')
-}
-
-// ── Transactions ─────────────────────────────────────────────────────────
-
-export interface Transaction {
-  id: number
-  type: 'depot' | 'retrait'
-  montant: number
-  telephone_client: string
-  reference_paiement: string | null
-  reseau_mobile_money: ReferenceItem
-  plateforme_paris: ReferenceItem
-  created_at: string
-}
-
-export interface NewTransactionInput {
-  type: 'depot' | 'retrait'
-  reseau_mobile_money_id: number
-  plateforme_paris_id: number
-  montant: number
-  telephone_client: string
-  reference_paiement?: string
-}
-
-export function createTransaction(data: NewTransactionInput): Promise<{ transaction: Transaction }> {
-  return apiFetch('/agent/transactions', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  })
 }
