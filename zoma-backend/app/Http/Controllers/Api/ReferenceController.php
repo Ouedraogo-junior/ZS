@@ -30,11 +30,15 @@ class ReferenceController extends Controller
         );
     }
 
-    /** Utile pour les formulaires admin (rattacher un gérant/agent à une agence). */
+    /** Utile pour les formulaires admin (rattacher un gérant/agent à une agence)
+     *  et pour la page publique (liste des agences). */
     public function agences()
     {
         return response()->json(
-            Agence::where('statut', 'active')->select('id', 'nom', 'ville')->orderBy('nom')->get()
+            Agence::where('statut', 'active')
+                ->select('id', 'nom', 'ville', 'adresse', 'telephone')
+                ->orderBy('nom')
+                ->get()
         );
     }
 }

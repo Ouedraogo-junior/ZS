@@ -1,14 +1,17 @@
 // src/components/common/ZomaLogo.tsx
 interface ZomaLogoProps {
   /** 'mobile' : écran de connexion agent (grand, centré, vertical).
-   *  'sidebar' : barre latérale gérant/admin (compact, horizontal). */
+   *  'sidebar' : barre latérale gérant/admin ou navbar publique (compact, horizontal). */
   variant?: 'mobile' | 'sidebar'
   /** Sous-titre affiché sous "ZOMA SERVICES" en variante sidebar
    *  (ex. "Gérant d'agence", "Administrateur réseau"). */
   subtitle?: string
+  /** Sidebar uniquement : texte clair pour fond coloré (par défaut),
+   *  false pour fond blanc/clair (ex. navbar publique une fois scrollée). */
+  light?: boolean
 }
 
-export function ZomaLogo({ variant = 'mobile', subtitle }: ZomaLogoProps) {
+export function ZomaLogo({ variant = 'mobile', subtitle, light = true }: ZomaLogoProps) {
   if (variant === 'sidebar') {
     return (
       <div className="flex items-center gap-3">
@@ -19,8 +22,10 @@ export function ZomaLogo({ variant = 'mobile', subtitle }: ZomaLogoProps) {
           </span>
         </div>
         <div>
-          <p className="font-display font-bold text-white text-sm leading-tight">ZOMA SERVICES</p>
-          {subtitle && <p className="text-white/50 text-[11px]">{subtitle}</p>}
+          <p className={`font-display font-bold text-sm leading-tight ${light ? 'text-white' : 'text-text'}`}>
+            ZOMA SERVICES
+          </p>
+          {subtitle && <p className={`text-[11px] ${light ? 'text-white/50' : 'text-muted'}`}>{subtitle}</p>}
         </div>
       </div>
     )

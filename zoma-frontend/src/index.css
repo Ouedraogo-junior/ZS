@@ -47,3 +47,21 @@
     font-size: 16px;
   }
 }
+
+/* Animations du hero de la page publique */
+@keyframes hero-pan {
+  0% { transform: scale(1) translate(0, 0); }
+  100% { transform: scale(1.15) translate(-1%, -1%); }
+}
+.animate-hero-pan {
+  animation: hero-pan 8s ease-in-out infinite alternate;
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+  animation: fade-in-up 0.8s ease-out forwards;
+  opacity: 0;
+}

@@ -5,12 +5,18 @@
 // barre latérale sur desktop (lg+), navigation en haut sur mobile/tablette.
 // Les onglets disponibles dépendent du rôle.
 import { useState } from 'react'
-import { LogOut, ShieldCheck, UserCog, Users } from 'lucide-react'
+import { LayoutDashboard, LogOut, MessageSquareWarning, Receipt, Settings, ShieldCheck, Star, UserCog, Users } from 'lucide-react'
 import { ZomaLogo } from '@/components/common/ZomaLogo'
+import { GerantDashboardScreen } from './GerantDashboardScreen'
+import { AdminDashboardScreen } from './AdminDashboardScreen'
 import { AgentsScreen } from './AgentsScreen'
 import { UsersScreen } from './UsersScreen'
+import { AvisScreen } from './AvisScreen'
+import { ReclamationsScreen } from './ReclamationsScreen'
+import { StaffTransactionsScreen } from './StaffTransactionsScreen'
+import { ConfigScreen } from './ConfigScreen'
 
-type StaffScreen = 'agents' | 'users'
+type StaffScreen = 'dashboard' | 'agents' | 'users' | 'avis' | 'reclamations' | 'transactions' | 'config'
 
 interface StaffAppProps {
   name: string
@@ -24,12 +30,22 @@ export default function StaffApp({ name, role, agencyName, onLogout, onEditProfi
   const tabs =
     role === 'admin'
       ? [
+          { id: 'dashboard' as const, label: 'Tableau de bord', icon: LayoutDashboard },
+          { id: 'transactions' as const, label: 'Transactions', icon: Receipt },
           { id: 'agents' as const, label: 'Agents', icon: Users },
+          { id: 'reclamations' as const, label: 'Réclamations', icon: MessageSquareWarning },
           { id: 'users' as const, label: 'Gérants & admins', icon: ShieldCheck },
+          { id: 'avis' as const, label: 'Avis clients', icon: Star },
+          { id: 'config' as const, label: 'Configuration', icon: Settings },
         ]
-      : [{ id: 'agents' as const, label: 'Agents', icon: Users }]
+      : [
+          { id: 'dashboard' as const, label: 'Tableau de bord', icon: LayoutDashboard },
+          { id: 'transactions' as const, label: 'Transactions', icon: Receipt },
+          { id: 'agents' as const, label: 'Agents', icon: Users },
+          { id: 'reclamations' as const, label: 'Réclamations', icon: MessageSquareWarning },
+        ]
 
-  const [screen, setScreen] = useState<StaffScreen>('agents')
+  const [screen, setScreen] = useState<StaffScreen>('dashboard')
 
   const subtitle = role === 'admin' ? 'Administrateur réseau' : `Gérant · ${agencyName}`
 
@@ -125,8 +141,14 @@ export default function StaffApp({ name, role, agencyName, onLogout, onEditProfi
       </aside>
 
       <main className="flex-1 min-w-0">
+        {screen === 'dashboard' && role === 'gerant' && <GerantDashboardScreen agencyName={agencyName ?? ''} />}
+        {screen === 'dashboard' && role === 'admin' && <AdminDashboardScreen />}
+        {screen === 'transactions' && <StaffTransactionsScreen role={role} />}
         {screen === 'agents' && <AgentsScreen role={role} />}
+        {screen === 'reclamations' && <ReclamationsScreen />}
         {screen === 'users' && role === 'admin' && <UsersScreen />}
+        {screen === 'avis' && role === 'admin' && <AvisScreen />}
+        {screen === 'config' && role === 'admin' && <ConfigScreen />}
       </main>
     </div>
   )
