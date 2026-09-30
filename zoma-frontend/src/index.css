@@ -41,11 +41,29 @@
 
 /* Safari iOS zoome automatiquement sur un champ focus dont la police fait
    moins de 16px. Règle globale plutôt que champ par champ : couvre aussi
-   les formulaires à venir, sans qu'on ait à y repenser à chaque fois. */
+   les formulaires à venir, sans qu'on ait à y repenser à chaque fois.
+   !important nécessaire : une classe utilitaire comme text-sm passe
+   sinon devant cette règle de base (les utilitaires Tailwind priment
+   toujours sur @layer base, quel que soit l'ordre d'écriture) — c'est
+   une contrainte à ne jamais laisser contourner, pas un simple style. */
 @layer base {
   input, select, textarea {
-    font-size: 16px;
+    font-size: 16px !important;
   }
+}
+
+/* Filet de sécurité : aucune page de cette appli n'a besoin de défiler
+   horizontalement dans son ensemble (seuls certains éléments internes,
+   comme les barres d'onglets, le font volontairement dans leur propre
+   conteneur). Si un élément déborde par erreur (ex. un <select> sans
+   largeur contrainte dans une grille), ça le limite à un débordement
+   local plutôt que de décaler toute la page.
+   Le fond gris clair (au lieu du blanc par défaut du navigateur) évite
+   aussi qu'un rebond de défilement mobile (iOS notamment), en bas ou en
+   haut de page, ne révèle un blanc qui tranche avec le reste de l'appli. */
+html, body {
+  overflow-x: hidden;
+  background-color: #F7F9FC;
 }
 
 /* Animations du hero de la page publique */

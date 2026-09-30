@@ -146,7 +146,7 @@ export function TransactionScreen({ agentName, agencyName, onLogout, onEditProfi
 
   return (
     <div className="min-h-screen min-h-dvh bg-background flex flex-col">
-      <div className="bg-gradient-to-br from-primary to-primary-dark px-5 pt-5 pb-5">
+      <div className="sticky top-0 z-20 bg-gradient-to-br from-primary to-primary-dark px-5 pt-5 pb-5">
         <div className="flex items-start justify-between">
           <div>
             <p className="text-white/60 text-xs">Bonjour,</p>

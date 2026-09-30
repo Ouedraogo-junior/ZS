@@ -43,7 +43,7 @@ export function HistoryScreen({ agencyName, onLogout, onEditProfile }: HistorySc
 
   return (
     <div className="min-h-screen min-h-dvh bg-background flex flex-col">
-      <div className="bg-gradient-to-br from-primary to-primary-dark px-5 pt-5 pb-5">
+      <div className="sticky top-0 z-20 bg-gradient-to-br from-primary to-primary-dark px-5 pt-5 pb-5">
         <div className="flex items-start justify-between mb-1">
           <h1 className="font-display text-white font-bold text-lg">Historique du poste</h1>
           <div className="flex items-center gap-2 flex-shrink-0">

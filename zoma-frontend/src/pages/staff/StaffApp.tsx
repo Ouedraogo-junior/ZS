@@ -94,7 +94,7 @@ export default function StaffApp({ name, role, agencyName, onLogout, onEditProfi
       </div>
 
       {/* Barre latérale desktop (lg et plus) */}
-      <aside className="hidden lg:flex w-64 bg-gradient-to-b from-primary to-primary-dark min-h-dvh flex-col flex-shrink-0">
+      <aside className="hidden lg:flex w-64 bg-gradient-to-b from-primary to-primary-dark h-dvh sticky top-0 flex-col flex-shrink-0">
         <div className="p-5 pb-4 border-b border-white/10">
           <ZomaLogo variant="sidebar" subtitle={subtitle} />
         </div>

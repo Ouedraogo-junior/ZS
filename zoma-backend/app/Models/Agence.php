@@ -39,6 +39,11 @@ class Agence extends Model
         return $this->hasMany(Releve::class);
     }
 
+    public function demandes(): HasMany
+    {
+        return $this->hasMany(DemandeTransaction::class);
+    }
+
     /**
      * Les gérants rattachés à cette agence (users.role = 'gerant').
      * Les administrateurs réseau n'ont pas d'agence_id (portée globale).

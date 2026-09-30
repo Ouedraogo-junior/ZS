@@ -1,9 +1,12 @@
 <?php
 // routes/api.php
 
+use App\Http\Controllers\Api\AgentDemandeController;
 use App\Http\Controllers\Api\AgentManagementController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AvisController;
+use App\Http\Controllers\Api\ClientAuthController;
+use App\Http\Controllers\Api\ClientDemandeController;
 use App\Http\Controllers\Api\ConfigController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ReclamationController;
@@ -19,6 +22,20 @@ use Illuminate\Support\Facades\Route;
 // chaque groupe protégé : voir le commentaire dans CheckIdleTimeout.php.
 
 Route::post('/login', [AuthController::class, 'login']);
+
+// Connexion client — pas de middleware "idle" ici : le client reste
+// connecté durablement sur son propre appareil (voir ClientAuthController).
+Route::post('/client/login', [ClientAuthController::class, 'login']);
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/client/logout', [ClientAuthController::class, 'logout']);
+    Route::get('/client/me', [ClientAuthController::class, 'me']);
+
+    Route::post('/client/demandes', [ClientDemandeController::class, 'store']);
+    Route::get('/client/demandes', [ClientDemandeController::class, 'index']);
+    Route::get('/client/demandes/{demande}', [ClientDemandeController::class, 'show']);
+    Route::get('/client/demandes/{demande}/preuve', [ClientDemandeController::class, 'preuve']);
+    Route::post('/client/demandes/{demande}/messages', [ClientDemandeController::class, 'storeMessage']);
+});
 
 // Formulaires et listes publics (site vitrine) — aucune authentification requise.
 Route::get('/agences', [ReferenceController::class, 'agences']);
@@ -41,9 +58,16 @@ Route::middleware(['idle', 'auth:sanctum'])->group(function () {
 Route::middleware(['idle', 'auth:sanctum', 'role:agent'])->group(function () {
     Route::post('/agent/transactions', [TransactionController::class, 'store']);
     Route::get('/agent/transactions', [TransactionController::class, 'index']);
+    Route::post('/agent/transactions/{transaction}/annuler', [TransactionController::class, 'annuler']);
 
     Route::get('/agent/releves/preparation', [ReleveController::class, 'prepare']);
     Route::post('/agent/releves', [ReleveController::class, 'store']);
+
+    Route::get('/agent/demandes', [AgentDemandeController::class, 'index']);
+    Route::get('/agent/demandes/{demande}', [AgentDemandeController::class, 'show']);
+    Route::post('/agent/demandes/{demande}/valider', [AgentDemandeController::class, 'valider']);
+    Route::post('/agent/demandes/{demande}/messages', [AgentDemandeController::class, 'storeMessage']);
+    Route::get('/agent/demandes/{demande}/preuve', [AgentDemandeController::class, 'preuve']);
 });
 
 Route::middleware(['idle', 'auth:sanctum', 'role:gerant,admin'])->group(function () {
@@ -53,6 +77,7 @@ Route::middleware(['idle', 'auth:sanctum', 'role:gerant,admin'])->group(function
     Route::post('/staff/agents/{agent}/reinitialiser-pin', [AgentManagementController::class, 'reinitialiserPin']);
 
     Route::get('/staff/transactions', [StaffTransactionController::class, 'index']);
+    Route::post('/staff/transactions/{transaction}/annuler', [StaffTransactionController::class, 'annuler']);
 
     Route::get('/staff/reclamations', [ReclamationController::class, 'index']);
     Route::get('/staff/reclamations/{reclamation}', [ReclamationController::class, 'show']);

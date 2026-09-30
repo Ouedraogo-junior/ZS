@@ -56,6 +56,11 @@ class Agent extends Authenticatable
         return $this->hasMany(Releve::class);
     }
 
+    public function demandesTraitees(): HasMany
+    {
+        return $this->hasMany(DemandeTransaction::class);
+    }
+
     public function estActif(): bool
     {
         return $this->statut === 'active';

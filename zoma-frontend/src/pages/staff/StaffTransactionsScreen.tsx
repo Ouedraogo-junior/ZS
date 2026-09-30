@@ -68,65 +68,84 @@ export function StaffTransactionsScreen({ role }: StaffTransactionsScreenProps) 
 
       {/* Filtres */}
       <div className="bg-white rounded-2xl p-4 md:p-5 shadow-sm mb-5">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 min-w-0">
           {role === 'admin' && (
-            <select
-              value={filters.agence_id ?? ''}
-              onChange={e => updateFilter({ agence_id: e.target.value ? Number(e.target.value) : undefined })}
-              className="h-10 px-3 rounded-xl border-2 border-border text-sm text-text bg-white"
-            >
-              <option value="">Toutes les agences</option>
-              {agences?.map(a => <option key={a.id} value={a.id}>{a.nom}</option>)}
-            </select>
+            <div className="min-w-0">
+              <label className="text-muted text-xs font-medium block mb-1">Agence</label>
+              <select
+                value={filters.agence_id ?? ''}
+                onChange={e => updateFilter({ agence_id: e.target.value ? Number(e.target.value) : undefined })}
+                className="w-full min-w-0 h-10 px-3 rounded-xl border-2 border-border text-sm text-text bg-white truncate"
+              >
+                <option value="">Toutes les agences</option>
+                {agences?.map(a => <option key={a.id} value={a.id}>{a.nom}</option>)}
+              </select>
+            </div>
           )}
-          <select
-            value={filters.agent_id ?? ''}
-            onChange={e => updateFilter({ agent_id: e.target.value ? Number(e.target.value) : undefined })}
-            className="h-10 px-3 rounded-xl border-2 border-border text-sm text-text bg-white"
-          >
-            <option value="">Tous les agents</option>
-            {agents?.map(a => <option key={a.id} value={a.id}>{a.nom}</option>)}
-          </select>
-          <select
-            value={filters.type ?? ''}
-            onChange={e => updateFilter({ type: (e.target.value || undefined) as 'depot' | 'retrait' | undefined })}
-            className="h-10 px-3 rounded-xl border-2 border-border text-sm text-text bg-white"
-          >
-            <option value="">Dépôts et retraits</option>
-            <option value="depot">Dépôts</option>
-            <option value="retrait">Retraits</option>
-          </select>
-          <select
-            value={filters.reseau_mobile_money_id ?? ''}
-            onChange={e => updateFilter({ reseau_mobile_money_id: e.target.value ? Number(e.target.value) : undefined })}
-            className="h-10 px-3 rounded-xl border-2 border-border text-sm text-text bg-white"
-          >
-            <option value="">Tous les réseaux</option>
-            {reseaux?.map(r => <option key={r.id} value={r.id}>{r.nom}</option>)}
-          </select>
-          <select
-            value={filters.plateforme_paris_id ?? ''}
-            onChange={e => updateFilter({ plateforme_paris_id: e.target.value ? Number(e.target.value) : undefined })}
-            className="h-10 px-3 rounded-xl border-2 border-border text-sm text-text bg-white"
-          >
-            <option value="">Toutes les plateformes</option>
-            {plateformes?.map(p => <option key={p.id} value={p.id}>{p.nom}</option>)}
-          </select>
-          <div className="flex gap-2">
-            <input
-              type="date"
-              value={filters.du ?? ''}
-              onChange={e => updateFilter({ du: e.target.value || undefined })}
-              className="h-10 px-2 rounded-xl border-2 border-border text-sm text-text bg-white flex-1 min-w-0"
-              aria-label="Du"
-            />
-            <input
-              type="date"
-              value={filters.au ?? ''}
-              onChange={e => updateFilter({ au: e.target.value || undefined })}
-              className="h-10 px-2 rounded-xl border-2 border-border text-sm text-text bg-white flex-1 min-w-0"
-              aria-label="Au"
-            />
+          <div className="min-w-0">
+            <label className="text-muted text-xs font-medium block mb-1">Agent</label>
+            <select
+              value={filters.agent_id ?? ''}
+              onChange={e => updateFilter({ agent_id: e.target.value ? Number(e.target.value) : undefined })}
+              className="w-full min-w-0 h-10 px-3 rounded-xl border-2 border-border text-sm text-text bg-white truncate"
+            >
+              <option value="">Tous les agents</option>
+              {agents?.map(a => <option key={a.id} value={a.id}>{a.nom}</option>)}
+            </select>
+          </div>
+          <div className="min-w-0">
+            <label className="text-muted text-xs font-medium block mb-1">Type</label>
+            <select
+              value={filters.type ?? ''}
+              onChange={e => updateFilter({ type: (e.target.value || undefined) as 'depot' | 'retrait' | undefined })}
+              className="w-full min-w-0 h-10 px-3 rounded-xl border-2 border-border text-sm text-text bg-white truncate"
+            >
+              <option value="">Dépôts et retraits</option>
+              <option value="depot">Dépôts</option>
+              <option value="retrait">Retraits</option>
+            </select>
+          </div>
+          <div className="min-w-0">
+            <label className="text-muted text-xs font-medium block mb-1">Réseau</label>
+            <select
+              value={filters.reseau_mobile_money_id ?? ''}
+              onChange={e => updateFilter({ reseau_mobile_money_id: e.target.value ? Number(e.target.value) : undefined })}
+              className="w-full min-w-0 h-10 px-3 rounded-xl border-2 border-border text-sm text-text bg-white truncate"
+            >
+              <option value="">Tous les réseaux</option>
+              {reseaux?.map(r => <option key={r.id} value={r.id}>{r.nom}</option>)}
+            </select>
+          </div>
+          <div className="min-w-0">
+            <label className="text-muted text-xs font-medium block mb-1">Plateforme</label>
+            <select
+              value={filters.plateforme_paris_id ?? ''}
+              onChange={e => updateFilter({ plateforme_paris_id: e.target.value ? Number(e.target.value) : undefined })}
+              className="w-full min-w-0 h-10 px-3 rounded-xl border-2 border-border text-sm text-text bg-white truncate"
+            >
+              <option value="">Toutes les plateformes</option>
+              {plateformes?.map(p => <option key={p.id} value={p.id}>{p.nom}</option>)}
+            </select>
+          </div>
+          <div className="col-span-2 md:col-span-3 lg:col-span-6 grid grid-cols-2 gap-3 min-w-0 lg:max-w-xs">
+            <div className="min-w-0">
+              <label className="text-muted text-xs font-medium block mb-1">Du</label>
+              <input
+                type="date"
+                value={filters.du ?? ''}
+                onChange={e => updateFilter({ du: e.target.value || undefined })}
+                className="w-full min-w-0 h-10 px-3 rounded-xl border-2 border-border text-sm text-text bg-white [color-scheme:light]"
+              />
+            </div>
+            <div className="min-w-0">
+              <label className="text-muted text-xs font-medium block mb-1">Au</label>
+              <input
+                type="date"
+                value={filters.au ?? ''}
+                onChange={e => updateFilter({ au: e.target.value || undefined })}
+                className="w-full min-w-0 h-10 px-3 rounded-xl border-2 border-border text-sm text-text bg-white [color-scheme:light]"
+              />
+            </div>
           </div>
         </div>
       </div>

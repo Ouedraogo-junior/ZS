@@ -26,7 +26,7 @@ export function AgenciesSection() {
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-10">
           <h2 className="font-display text-3xl md:text-4xl font-bold text-text">Nos agences</h2>
-          <p className="text-muted mt-2">Service continu 24h/24, 7j/7 — Orange Money et Moov Money acceptés</p>
+          <p className="text-muted mt-2">Service continu 24h/24, 7j/7, Orange Money, Moov Money et Wave acceptés</p>
         </div>
 
         {error && <p className="text-danger text-sm text-center bg-danger/10 rounded-xl py-2.5 px-3 mb-4">{error}</p>}

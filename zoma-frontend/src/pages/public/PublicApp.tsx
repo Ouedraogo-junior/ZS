@@ -2,6 +2,7 @@
 //
 // Site public — vitrine de l'agence, accessible sans connexion.
 import { HeroCarousel } from '@/components/public/HeroCarousel'
+import { RotatingWord } from '@/components/public/RotatingWord'
 import { Navbar } from '@/components/public/Navbar'
 import { HowItWorksSection } from './HowItWorksSection'
 import { AboutSection } from './AboutSection'
@@ -21,13 +22,19 @@ export default function PublicApp() {
 
         <div className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-6">
           <h1 className="font-display text-white text-4xl md:text-6xl font-bold max-w-3xl leading-tight animate-fade-in-up">
-            Dépôt et retrait rapides pour vos comptes de paris sportifs
+            <RotatingWord
+              words={['1xBet', 'Betwinner', 'Melbet', '1Win'].map(platform => (
+                <span key={platform}>
+                  Dépôt et retrait rapides sur <span className="text-secondary">{platform}</span>
+                </span>
+              ))}
+            />
           </h1>
           <p
             className="text-white/80 text-lg mt-5 max-w-xl animate-fade-in-up"
             style={{ animationDelay: '150ms' }}
           >
-            Orange Money, Moov Money — un réseau d'agences disponible 24h/24, 7j/7.
+            Orange Money, Moov Money, Wave, un réseau d'agences disponible 24h/24, 7j/7.
           </p>
           <div className="flex flex-wrap gap-3 justify-center mt-8 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
             <a

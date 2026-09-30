@@ -109,7 +109,7 @@ export function HandoverScreen({ agentName, onLogout, onEditProfile }: HandoverS
 
   return (
     <div className="min-h-screen min-h-dvh bg-background flex flex-col">
-      <div className="bg-gradient-to-br from-primary to-primary-dark px-5 pt-5 pb-5 flex items-start justify-between">
+      <div className="sticky top-0 z-20 bg-gradient-to-br from-primary to-primary-dark px-5 pt-5 pb-5 flex items-start justify-between">
         <div>
           <h1 className="font-display text-white font-bold text-lg">Relève d'équipe</h1>
           <p className="text-white/60 text-xs">
