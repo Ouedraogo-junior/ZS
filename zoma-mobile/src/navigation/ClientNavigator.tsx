@@ -1,8 +1,8 @@
 // src/navigation/ClientNavigator.tsx
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
-import { Text } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { PlusCircle, ClipboardList, User } from 'lucide-react-native'
 import { colors } from '../theme/colors'
 import { NouvelleDemandeScreen } from '../screens/client/NouvelleDemandeScreen'
 import { MesDemandesScreen } from '../screens/client/MesDemandesScreen'
@@ -60,17 +60,17 @@ export function ClientNavigator() {
       <Tab.Screen
         name="NouvelleDemande"
         component={NouvelleDemandeScreen}
-        options={{ title: 'Nouvelle demande', tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>➕</Text> }}
+        options={{ title: 'Nouvelle demande', tabBarIcon: ({ color, size }) => <PlusCircle color={color} size={size} /> }}
       />
       <Tab.Screen
         name="MesDemandes"
         component={MesDemandesStackScreen}
-        options={{ title: 'Mes demandes', tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>📋</Text> }}
+        options={{ title: 'Mes demandes', tabBarIcon: ({ color, size }) => <ClipboardList color={color} size={size} /> }}
       />
       <Tab.Screen
         name="Profil"
         component={ClientProfileScreen}
-        options={{ title: 'Profil', tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>👤</Text> }}
+        options={{ title: 'Profil', tabBarIcon: ({ color, size }) => <User color={color} size={size} /> }}
       />
     </Tab.Navigator>
   )

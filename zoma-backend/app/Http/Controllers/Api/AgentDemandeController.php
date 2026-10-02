@@ -47,11 +47,15 @@ class AgentDemandeController extends Controller
     {
         $this->autoriserAcces($request, $demande);
 
-        if (! $demande->estEnAttente()) {
-            abort(422, 'Cette demande a déjà été traitée.');
+        // La vraie protection contre deux agents validant en même temps
+        // est dans DemandeTransaction::valider() (mise à jour atomique) —
+        // ici on se contente de traduire l'échec en réponse HTTP propre.
+        try {
+            $transaction = $demande->valider($request->user());
+        } catch (\RuntimeException $e) {
+            abort(409, $e->getMessage());
         }
 
-        $transaction = $demande->valider($request->user());
         $demande->refresh();
 
         event(new DemandeValidee($demande));

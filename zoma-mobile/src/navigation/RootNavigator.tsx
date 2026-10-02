@@ -8,7 +8,7 @@ import { RoleSelectScreen } from '../screens/shared/RoleSelectScreen'
 import { ClientLoginScreen } from '../screens/client/ClientLoginScreen'
 import { StaffLoginScreen } from '../screens/shared/StaffLoginScreen'
 import { ClientNavigator } from './ClientNavigator'
-import { AgentHomeScreen } from '../screens/agent/AgentHomeScreen'
+import { AgentNavigator } from './AgentNavigator'
 import { GerantHomeScreen } from '../screens/gerant/GerantHomeScreen'
 
 export type RootStackParamList = {
@@ -41,10 +41,10 @@ export function RootNavigator() {
       )}
 
       {state.status === 'client' && <ClientNavigator />}
+      {state.status === 'staff' && state.role === 'agent' && <AgentNavigator />}
 
-      {/* Agent/gérant : toujours temporaires, à remplacer aux étapes
-          suivantes (Transactions, Demandes, Relève...). */}
-      {state.status === 'staff' && state.role === 'agent' && <AgentHomeScreen />}
+      {/* Gérant : toujours temporaire, à construire à l'étape suivante
+          (tableau de bord, réclamations...). */}
       {state.status === 'staff' && (state.role === 'gerant' || state.role === 'admin') && <GerantHomeScreen />}
     </NavigationContainer>
   )

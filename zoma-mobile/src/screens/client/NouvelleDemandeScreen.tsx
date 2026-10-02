@@ -13,6 +13,7 @@ import {
   Platform,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { CheckCircle2 } from 'lucide-react-native'
 import * as ImagePicker from 'expo-image-picker'
 import { colors } from '../../theme/colors'
 import { SelectField } from '../../components/SelectField'
@@ -126,7 +127,8 @@ export function NouvelleDemandeScreen() {
   if (success) {
     return (
       <SafeAreaView style={styles.centered} edges={['top']}>
-        <Text style={styles.successTitle}>Demande envoyée ✅</Text>
+        <CheckCircle2 color={colors.success} size={48} style={{ marginBottom: 16 }} />
+        <Text style={styles.successTitle}>Demande envoyée</Text>
         <Text style={styles.successText}>
           Votre demande est en attente de traitement par un agent de l'agence choisie.
         </Text>
