@@ -12,7 +12,9 @@ import {
   Platform,
 } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
+import { useHeaderHeight } from '@react-navigation/elements'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors } from '../../theme/colors'
 import { getDemande, sendDemandeMessage, getErrorMessage, type Demande, type DemandeMessage } from '../../lib/api'
 import type { MesDemandesStackParamList } from '../../navigation/ClientNavigator'
@@ -21,6 +23,7 @@ type Props = NativeStackScreenProps<MesDemandesStackParamList, 'DemandeDetail'>
 
 export function DemandeDetailScreen({ route }: Props) {
   const { demandeId } = route.params
+  const headerHeight = useHeaderHeight()
   const [demande, setDemande] = useState<Demande | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [texte, setTexte] = useState('')
@@ -59,10 +62,11 @@ export function DemandeDetailScreen({ route }: Props) {
   const estValidee = demande.statut === 'validee'
 
   return (
+    <SafeAreaView style={styles.container} edges={['bottom']}>
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={90}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={headerHeight}
     >
       <View style={styles.summary}>
         <View style={styles.summaryHeader}>
@@ -110,6 +114,7 @@ export function DemandeDetailScreen({ route }: Props) {
         </Pressable>
       </View>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   )
 }
 

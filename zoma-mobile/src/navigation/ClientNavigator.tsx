@@ -1,6 +1,7 @@
 // src/navigation/ClientNavigator.tsx
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
+import { getFocusedRouteNameFromRoute } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { PlusCircle, ClipboardList, User } from 'lucide-react-native'
 import { colors } from '../theme/colors'
@@ -44,17 +45,19 @@ export function ClientNavigator() {
   // physiques, non nul sinon).
   const insets = useSafeAreaInsets()
 
+  const tabBarStyleNormal = {
+    height: 56 + insets.bottom + 10,
+    paddingBottom: insets.bottom + 10,
+    paddingTop: 8,
+  }
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.muted,
-        tabBarStyle: {
-          height: 56 + insets.bottom + 10,
-          paddingBottom: insets.bottom + 10,
-          paddingTop: 8,
-        },
+        tabBarStyle: tabBarStyleNormal,
       }}
     >
       <Tab.Screen
@@ -65,7 +68,16 @@ export function ClientNavigator() {
       <Tab.Screen
         name="MesDemandes"
         component={MesDemandesStackScreen}
-        options={{ title: 'Mes demandes', tabBarIcon: ({ color, size }) => <ClipboardList color={color} size={size} /> }}
+        options={({ route }) => {
+          // Masque la barre d'onglets uniquement sur l'écran de détail
+          // (fil de messages) — reste visible sur la liste.
+          const focusedRoute = getFocusedRouteNameFromRoute(route) ?? 'MesDemandesListe'
+          return {
+            title: 'Mes demandes',
+            tabBarIcon: ({ color, size }) => <ClipboardList color={color} size={size} />,
+            tabBarStyle: focusedRoute === 'DemandeDetail' ? { display: 'none' } : tabBarStyleNormal,
+          }
+        }}
       />
       <Tab.Screen
         name="Profil"

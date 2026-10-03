@@ -60,8 +60,11 @@ class AgentDemandeController extends Controller
 
         event(new DemandeValidee($demande));
 
+        // Mêmes relations que show() — sinon le frontend, qui remplace
+        // la demande entière par cette réponse, perd reseau_mobile_money
+        // / plateforme_paris / messages (undefined au lieu de l'objet).
         return response()->json([
-            'demande' => $demande->load('client:id,nom,telephone'),
+            'demande' => $demande->load(['client:id,nom,telephone', 'reseauMobileMoney:id,nom', 'plateformeParis:id,nom', 'messages']),
             'transaction' => $transaction,
         ]);
     }

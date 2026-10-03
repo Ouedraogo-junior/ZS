@@ -6,6 +6,7 @@ import {
   TextInput,
   Pressable,
   Image,
+  Modal,
   ScrollView,
   StyleSheet,
   ActivityIndicator,
@@ -14,14 +15,17 @@ import {
   Alert,
 } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
+import { useHeaderHeight } from '@react-navigation/elements'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
-import { AlertTriangle } from 'lucide-react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
+import { AlertTriangle, Copy, Check, X } from 'lucide-react-native'
+import * as Clipboard from 'expo-clipboard'
 import { colors } from '../../theme/colors'
 import {
   getAgentDemande,
   validerDemande,
   sendAgentDemandeMessage,
-  getPreuveImageSource,
+  fetchPreuveImageDataUri,
   getErrorMessage,
   type AgentDemande,
   type DemandeMessage,
@@ -32,12 +36,22 @@ type Props = NativeStackScreenProps<AgentDemandesStackParamList, 'AgentDemandeDe
 
 export function AgentDemandeDetailScreen({ route }: Props) {
   const { demandeId } = route.params
+  const headerHeight = useHeaderHeight()
   const [demande, setDemande] = useState<AgentDemande | null>(null)
-  const [preuveSource, setPreuveSource] = useState<{ uri: string; headers: Record<string, string> } | null>(null)
+  const [preuveDataUri, setPreuveDataUri] = useState<string | null>(null)
+  const [preuveErreur, setPreuveErreur] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [texte, setTexte] = useState('')
   const [envoi, setEnvoi] = useState(false)
   const [validation, setValidation] = useState(false)
+  const [champCopie, setChampCopie] = useState<string | null>(null)
+  const [preuveEnGrand, setPreuveEnGrand] = useState(false)
+
+  const copier = async (champ: string, valeur: string) => {
+    await Clipboard.setStringAsync(valeur)
+    setChampCopie(champ)
+    setTimeout(() => setChampCopie(null), 1500)
+  }
 
   const load = useCallback(() => {
     getAgentDemande(demandeId)
@@ -49,7 +63,9 @@ export function AgentDemandeDetailScreen({ route }: Props) {
 
   useEffect(() => {
     if (demande?.preuve_paiement) {
-      getPreuveImageSource(demandeId).then(setPreuveSource)
+      fetchPreuveImageDataUri(demandeId)
+        .then(setPreuveDataUri)
+        .catch(() => setPreuveErreur(true))
     }
   }, [demande?.preuve_paiement, demandeId])
 
@@ -107,10 +123,11 @@ export function AgentDemandeDetailScreen({ route }: Props) {
   const estEnAttente = demande.statut === 'en_attente'
 
   return (
+    <SafeAreaView style={styles.container} edges={['bottom']}>
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={90}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={headerHeight}
     >
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.summary}>
@@ -133,20 +150,46 @@ export function AgentDemandeDetailScreen({ route }: Props) {
           </View>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>ID bookmaker</Text>
-            <Text style={styles.infoValue}>{demande.id_bookmaker}</Text>
+            <Pressable style={styles.copyableValue} onPress={() => copier('id_bookmaker', demande.id_bookmaker)}>
+              <Text style={styles.infoValue}>{demande.id_bookmaker}</Text>
+              {champCopie === 'id_bookmaker' ? (
+                <Check size={15} color={colors.success} />
+              ) : (
+                <Copy size={15} color={colors.secondary} />
+              )}
+            </Pressable>
           </View>
           {demande.telephone_mobile_money && (
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Numéro pour les fonds</Text>
-              <Text style={styles.infoValue}>{demande.telephone_mobile_money}</Text>
+              <Pressable
+                style={styles.copyableValue}
+                onPress={() => copier('telephone_mobile_money', demande.telephone_mobile_money!)}
+              >
+                <Text style={styles.infoValue}>{demande.telephone_mobile_money}</Text>
+                {champCopie === 'telephone_mobile_money' ? (
+                  <Check size={15} color={colors.success} />
+                ) : (
+                  <Copy size={15} color={colors.secondary} />
+                )}
+              </Pressable>
             </View>
           )}
         </View>
 
-        {preuveSource && (
+        {demande.preuve_paiement && (
           <View style={styles.preuveBox}>
             <Text style={styles.preuveLabel}>Preuve de paiement</Text>
-            <Image source={preuveSource} style={styles.preuveImage} resizeMode="contain" />
+            {preuveErreur ? (
+              <Text style={styles.error}>Impossible de charger la preuve.</Text>
+            ) : preuveDataUri ? (
+              <Pressable onPress={() => setPreuveEnGrand(true)}>
+                <Image source={{ uri: preuveDataUri }} style={styles.preuveImage} resizeMode="contain" />
+                <Text style={styles.preuveHint}>Toucher pour agrandir</Text>
+              </Pressable>
+            ) : (
+              <ActivityIndicator color={colors.primary} style={{ marginVertical: 20 }} />
+            )}
           </View>
         )}
 
@@ -203,6 +246,18 @@ export function AgentDemandeDetailScreen({ route }: Props) {
         </Pressable>
       </View>
     </KeyboardAvoidingView>
+
+    {preuveDataUri && (
+      <Modal visible={preuveEnGrand} transparent animationType="fade" onRequestClose={() => setPreuveEnGrand(false)}>
+        <View style={styles.viewerBackdrop}>
+          <Pressable style={styles.viewerClose} onPress={() => setPreuveEnGrand(false)}>
+            <X color={colors.white} size={24} />
+          </Pressable>
+          <Image source={{ uri: preuveDataUri }} style={styles.viewerImage} resizeMode="contain" />
+        </View>
+      </Modal>
+    )}
+    </SafeAreaView>
   )
 }
 
@@ -216,9 +271,25 @@ const styles = StyleSheet.create({
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
   infoLabel: { fontSize: 13, color: colors.muted },
   infoValue: { fontSize: 13, fontWeight: '700', color: colors.text },
+  copyableValue: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   preuveBox: { backgroundColor: colors.white, borderRadius: 16, padding: 16 },
   preuveLabel: { fontSize: 13, fontWeight: '600', color: colors.muted, marginBottom: 10 },
   preuveImage: { width: '100%', height: 260, borderRadius: 12, backgroundColor: colors.background },
+  preuveHint: { textAlign: 'center', color: colors.secondary, fontSize: 12, fontWeight: '600', marginTop: 8 },
+  viewerBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', alignItems: 'center', justifyContent: 'center' },
+  viewerClose: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 1,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  viewerImage: { width: '100%', height: '80%' },
   warningBox: {
     flexDirection: 'row',
     alignItems: 'center',

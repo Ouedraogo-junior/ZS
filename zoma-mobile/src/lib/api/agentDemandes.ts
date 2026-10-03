@@ -34,13 +34,29 @@ export function sendAgentDemandeMessage(id: number, message: string): Promise<De
 
 /**
  * La preuve de paiement est servie par une route authentifiée (jamais
- * une URL publique) — le composant Image de React Native sait passer
- * des en-têtes personnalisés, donc on lui fournit directement le token.
+ * une URL publique). Les en-têtes personnalisés passés directement au
+ * composant Image sont peu fiables selon les plateformes (surtout iOS) —
+ * on télécharge donc l'image nous-mêmes via une requête authentifiée
+ * classique, puis on la convertit en URI de données (base64), que
+ * n'importe quel composant Image affiche sans aucune configuration
+ * particulière.
  */
-export async function getPreuveImageSource(demandeId: number): Promise<{ uri: string; headers: Record<string, string> }> {
+export async function fetchPreuveImageDataUri(demandeId: number): Promise<string> {
   const token = await getToken()
-  return {
-    uri: `${API_BASE_URL}/agent/demandes/${demandeId}/preuve`,
+  const response = await fetch(`${API_BASE_URL}/agent/demandes/${demandeId}/preuve`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+
+  if (!response.ok) {
+    throw new Error("Impossible de charger la preuve de paiement.")
   }
+
+  const blob = await response.blob()
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onloadend = () => resolve(reader.result as string)
+    reader.onerror = reject
+    reader.readAsDataURL(blob)
+  })
 }
