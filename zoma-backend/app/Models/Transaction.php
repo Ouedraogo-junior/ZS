@@ -17,6 +17,7 @@ class Transaction extends Model
     protected $fillable = [
         'agence_id',
         'agent_id',
+        'user_id',
         'type',
         'reseau_mobile_money_id',
         'plateforme_paris_id',
@@ -37,6 +38,12 @@ class Transaction extends Model
     public function agent(): BelongsTo
     {
         return $this->belongsTo(Agent::class);
+    }
+
+    /** Rempli uniquement si c'est un gérant OU un admin (pas un agent) qui a traité cette transaction. */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function reseauMobileMoney(): BelongsTo

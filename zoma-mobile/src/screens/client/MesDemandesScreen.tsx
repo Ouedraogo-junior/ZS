@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     textAlign: 'center',
   },
-  listContent: { paddingHorizontal: 20, paddingBottom: 32, gap: 10 },
+  listContent: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 32, gap: 10 },
   empty: { color: colors.muted, textAlign: 'center', marginTop: 40 },
   card: { backgroundColor: colors.white, borderRadius: 16, padding: 16 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },

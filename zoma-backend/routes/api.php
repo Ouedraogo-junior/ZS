@@ -88,6 +88,14 @@ Route::middleware(['idle', 'auth:sanctum', 'role:gerant,admin'])->group(function
 
 Route::middleware(['idle', 'auth:sanctum', 'role:gerant'])->group(function () {
     Route::get('/staff/dashboard', [DashboardController::class, 'gerant']);
+
+    // Mêmes méthodes que côté agent (AgentDemandeController) — un
+    // gérant peut aussi traiter les demandes de son agence (dépannage).
+    Route::get('/staff/demandes', [AgentDemandeController::class, 'index']);
+    Route::get('/staff/demandes/{demande}', [AgentDemandeController::class, 'show']);
+    Route::post('/staff/demandes/{demande}/valider', [AgentDemandeController::class, 'valider']);
+    Route::post('/staff/demandes/{demande}/messages', [AgentDemandeController::class, 'storeMessage']);
+    Route::get('/staff/demandes/{demande}/preuve', [AgentDemandeController::class, 'preuve']);
 });
 
 Route::middleware(['idle', 'auth:sanctum', 'role:admin'])->group(function () {
@@ -100,6 +108,14 @@ Route::middleware(['idle', 'auth:sanctum', 'role:admin'])->group(function () {
     Route::delete('/admin/avis/{avis}', [AvisController::class, 'destroy']);
 
     Route::get('/admin/dashboard', [DashboardController::class, 'admin']);
+
+    // Mêmes méthodes que côté agent/gérant — l'admin voit tout le
+    // réseau (pas de filtre par agence, voir AgentDemandeController).
+    Route::get('/admin/demandes', [AgentDemandeController::class, 'index']);
+    Route::get('/admin/demandes/{demande}', [AgentDemandeController::class, 'show']);
+    Route::post('/admin/demandes/{demande}/valider', [AgentDemandeController::class, 'valider']);
+    Route::post('/admin/demandes/{demande}/messages', [AgentDemandeController::class, 'storeMessage']);
+    Route::get('/admin/demandes/{demande}/preuve', [AgentDemandeController::class, 'preuve']);
 
     Route::get('/admin/agences', [ConfigController::class, 'agencesIndex']);
     Route::post('/admin/agences', [ConfigController::class, 'agencesStore']);

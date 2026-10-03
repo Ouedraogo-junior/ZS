@@ -1,0 +1,30 @@
+<?php
+// database/migrations/2026_10_03_000002_add_user_id_to_demande_transactions_table.php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('demande_transactions', function (Blueprint $table) {
+            $table->foreignId('user_id')
+                ->nullable()
+                ->after('agent_id')
+                ->constrained('users')
+                ->nullOnDelete();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('demande_transactions', function (Blueprint $table) {
+            $table->dropConstrainedForeignId('user_id');
+        });
+    }
+};

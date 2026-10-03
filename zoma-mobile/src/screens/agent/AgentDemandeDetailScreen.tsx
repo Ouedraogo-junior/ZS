@@ -1,5 +1,5 @@
 // src/screens/agent/AgentDemandeDetailScreen.tsx
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useState } from 'react'
 import {
   View,
   Text,
@@ -15,7 +15,7 @@ import {
   Alert,
 } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
-import { useHeaderHeight } from '@react-navigation/elements'
+import { useHeaderHeight, HeaderBackButton } from '@react-navigation/elements'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { AlertTriangle, Copy, Check, X } from 'lucide-react-native'
@@ -34,9 +34,26 @@ import type { AgentDemandesStackParamList } from '../../navigation/AgentDemandes
 
 type Props = NativeStackScreenProps<AgentDemandesStackParamList, 'AgentDemandeDetail'>
 
-export function AgentDemandeDetailScreen({ route }: Props) {
-  const { demandeId } = route.params
+export function AgentDemandeDetailScreen({ route, navigation }: Props) {
+  const { demandeId, retourVersHistorique } = route.params
   const headerHeight = useHeaderHeight()
+
+  // Atteint depuis l'onglet Historique (navigation croisée) : le bouton
+  // retour natif ramènerait vers la liste des demandes (la pile sur
+  // laquelle cet écran a été empilé), pas vers l'historique d'où
+  // l'agent vient réellement — on personnalise donc son comportement.
+  useLayoutEffect(() => {
+    if (retourVersHistorique) {
+      navigation.setOptions({
+        headerLeft: () => (
+          <HeaderBackButton
+            tintColor={colors.primary}
+            onPress={() => navigation.getParent()?.navigate('Historique')}
+          />
+        ),
+      })
+    }
+  }, [retourVersHistorique, navigation])
   const [demande, setDemande] = useState<AgentDemande | null>(null)
   const [preuveDataUri, setPreuveDataUri] = useState<string | null>(null)
   const [preuveErreur, setPreuveErreur] = useState(false)
@@ -62,11 +79,19 @@ export function AgentDemandeDetailScreen({ route }: Props) {
   useFocusEffect(load)
 
   useEffect(() => {
-    if (demande?.preuve_paiement) {
-      fetchPreuveImageDataUri(demandeId)
-        .then(setPreuveDataUri)
-        .catch(() => setPreuveErreur(true))
-    }
+    if (!demande?.preuve_paiement) return
+
+    // Si on quitte l'écran avant la fin du téléchargement/conversion de
+    // l'image, on évite de mettre à jour un état qui n'intéresse plus
+    // personne — pas la cause principale d'une lenteur perçue, mais
+    // ça enlève un travail inutile qui continuerait en arrière-plan.
+    let annule = false
+
+    fetchPreuveImageDataUri(demandeId)
+      .then(uri => { if (!annule) setPreuveDataUri(uri) })
+      .catch(() => { if (!annule) setPreuveErreur(true) })
+
+    return () => { annule = true }
   }, [demande?.preuve_paiement, demandeId])
 
   const envoyerMessage = async () => {
@@ -121,6 +146,13 @@ export function AgentDemandeDetailScreen({ route }: Props) {
   }
 
   const estEnAttente = demande.statut === 'en_attente'
+
+  // La discussion reste ouverte 24h après validation — le temps pour
+  // le client de signaler un souci directement ici, sans repasser par
+  // une réclamation, avant que le fil ne se ferme définitivement.
+  const UNE_JOURNEE_MS = 24 * 60 * 60 * 1000
+  const discussionOuverte =
+    estEnAttente || Date.now() - new Date(demande.updated_at).getTime() < UNE_JOURNEE_MS
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -232,19 +264,27 @@ export function AgentDemandeDetailScreen({ route }: Props) {
         ))}
       </ScrollView>
 
-      <View style={styles.inputRow}>
-        <TextInput
-          style={styles.input}
-          value={texte}
-          onChangeText={setTexte}
-          placeholder="Écrire un message..."
-          placeholderTextColor={colors.muted}
-          multiline
-        />
-        <Pressable style={styles.sendButton} onPress={envoyerMessage} disabled={envoi || !texte.trim()}>
-          <Text style={styles.sendButtonText}>{envoi ? '...' : 'Envoyer'}</Text>
-        </Pressable>
-      </View>
+      {discussionOuverte ? (
+        <View style={styles.inputRow}>
+          <TextInput
+            style={styles.input}
+            value={texte}
+            onChangeText={setTexte}
+            placeholder="Écrire un message..."
+            placeholderTextColor={colors.muted}
+            multiline
+          />
+          <Pressable style={styles.sendButton} onPress={envoyerMessage} disabled={envoi || !texte.trim()}>
+            <Text style={styles.sendButtonText}>{envoi ? '...' : 'Envoyer'}</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <View style={styles.inputFerme}>
+          <Text style={styles.inputFermeText}>
+            Demande validée — pour tout souci sur cette transaction, passez par une réclamation.
+          </Text>
+        </View>
+      )}
     </KeyboardAvoidingView>
 
     {preuveDataUri && (
@@ -343,4 +383,11 @@ const styles = StyleSheet.create({
   },
   sendButton: { backgroundColor: colors.primary, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12 },
   sendButtonText: { color: colors.white, fontWeight: '700', fontSize: 14 },
+  inputFerme: {
+    padding: 16,
+    backgroundColor: colors.white,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  inputFermeText: { fontSize: 12, color: colors.muted, textAlign: 'center' },
 })

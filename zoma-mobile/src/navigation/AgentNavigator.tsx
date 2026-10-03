@@ -29,7 +29,7 @@ const DemandesStack = createNativeStackNavigator<AgentDemandesStackParamList>()
 
 function AgentDemandesStackScreen() {
   return (
-    <DemandesStack.Navigator screenOptions={{ headerShown: false }}>
+    <DemandesStack.Navigator screenOptions={{ headerShown: false, headerTintColor: colors.primary }}>
       <DemandesStack.Screen name="AgentDemandesListe" component={AgentDemandesListScreen} />
       <DemandesStack.Screen
         name="AgentDemandeDetail"
@@ -76,8 +76,33 @@ export function AgentNavigator() {
             title: 'Demandes',
             tabBarIcon: ({ color, size }) => <Inbox color={color} size={size} />,
             tabBarStyle: focusedRoute === 'AgentDemandeDetail' ? { display: 'none' } : tabBarStyleNormal,
+            // Monte cet onglet (et lance son premier chargement de
+            // données) dès le démarrage de l'appli plutôt qu'au premier
+            // appui dessus — élimine le léger délai de "premier montage"
+            // puisqu'il est déjà fait, en arrière-plan, pendant que
+            // l'agent regarde un autre onglet. Coût en échange : un
+            // appel réseau de plus juste après la connexion, même si cet
+            // onglet n'est jamais visité — négligeable ici.
+            lazy: false,
           }
         }}
+        listeners={({ navigation }) => ({
+          // Ne réinitialise QUE si la pile interne n'est pas déjà à la
+          // racine (liste) — sinon on intercepte inutilement CHAQUE appui
+          // sur l'onglet, y compris le cas le plus fréquent où il n'y a
+          // rien à réinitialiser, ce qui ajoutait un travail redondant
+          // perceptible à chaque pression.
+          tabPress: (e) => {
+            const state = navigation.getState()
+            const demandesRoute = state.routes.find(r => r.name === 'Demandes')
+            const pileInterne = demandesRoute && 'state' in demandesRoute ? demandesRoute.state : undefined
+
+            if (pileInterne && pileInterne.index! > 0) {
+              e.preventDefault()
+              navigation.navigate('Demandes', { screen: 'AgentDemandesListe' })
+            }
+          },
+        })}
       />
       <Tab.Screen
         name="Historique"

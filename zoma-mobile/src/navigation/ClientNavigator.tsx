@@ -26,7 +26,7 @@ const MesDemandesStack = createNativeStackNavigator<MesDemandesStackParamList>()
 
 function MesDemandesStackScreen() {
   return (
-    <MesDemandesStack.Navigator screenOptions={{ headerShown: false }}>
+    <MesDemandesStack.Navigator screenOptions={{ headerShown: false, headerTintColor: colors.primary }}>
       <MesDemandesStack.Screen name="MesDemandesListe" component={MesDemandesScreen} />
       <MesDemandesStack.Screen
         name="DemandeDetail"
@@ -76,8 +76,27 @@ export function ClientNavigator() {
             title: 'Mes demandes',
             tabBarIcon: ({ color, size }) => <ClipboardList color={color} size={size} />,
             tabBarStyle: focusedRoute === 'DemandeDetail' ? { display: 'none' } : tabBarStyleNormal,
+            // Même raison que côté agent : évite le léger délai du
+            // premier montage en le faisant dès le démarrage de l'appli.
+            lazy: false,
           }
         }}
+        listeners={({ navigation }) => ({
+          // Ne réinitialise QUE si la pile interne n'est pas déjà à la
+          // racine (liste) — sinon on intercepte inutilement CHAQUE appui
+          // sur l'onglet, y compris le cas le plus fréquent, ce qui
+          // ajoutait un travail redondant perceptible.
+          tabPress: (e) => {
+            const state = navigation.getState()
+            const route = state.routes.find(r => r.name === 'MesDemandes')
+            const pileInterne = route && 'state' in route ? route.state : undefined
+
+            if (pileInterne && pileInterne.index! > 0) {
+              e.preventDefault()
+              navigation.navigate('MesDemandes', { screen: 'MesDemandesListe' })
+            }
+          },
+        })}
       />
       <Tab.Screen
         name="Profil"

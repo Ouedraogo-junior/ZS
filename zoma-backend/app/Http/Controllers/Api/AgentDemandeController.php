@@ -6,27 +6,39 @@ namespace App\Http\Controllers\Api;
 use App\Events\DemandeValidee;
 use App\Events\NouveauMessageDemande;
 use App\Http\Controllers\Controller;
+use App\Models\Agent;
 use App\Models\DemandeTransaction;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 /**
- * Traitement des demandes côté agent — scopées à sa propre agence
- * (celle choisie par le client à la soumission, CDC/fil : "chaque
- * agence gère son propre solde"). Pas de rejet : en cas de souci,
- * l'agent échange via le fil de messages plutôt que de rejeter
- * formellement (décision du fil de discussion) — une demande reste
- * "en_attente" jusqu'à validation, aussi longtemps que nécessaire.
+ * Traitement des demandes — utilisé par les agents, les gérants ET les
+ * admins (un gérant ou un admin peut dépanner — CDC/fil "gérant et admin
+ * peuvent aussi traiter les demandes").
+ *
+ * Portée d'accès selon le type de compte :
+ * - Agent / gérant : scopé à sa propre agence (celle choisie par le
+ *   client à la soumission, CDC/fil "chaque agence gère son propre
+ *   solde") — $user->agence_id suffit, fonctionne identiquement pour
+ *   les deux types de compte.
+ * - Admin : portée réseau entier, aucun filtre par agence — un admin
+ *   n'a pas d'agence_id propre (toujours null), le scoper comme un
+ *   agent/gérant l'exclurait de tout au lieu de tout lui montrer.
+ *
+ * Pas de rejet : en cas de souci, on échange via le fil de messages
+ * plutôt que de rejeter formellement — une demande reste "en_attente"
+ * jusqu'à validation, aussi longtemps que nécessaire.
  */
 class AgentDemandeController extends Controller
 {
     public function index(Request $request)
     {
-        $agent = $request->user();
+        $user = $request->user();
 
         $demandes = DemandeTransaction::query()
-            ->where('agence_id', $agent->agence_id)
-            ->with(['client:id,nom,telephone', 'reseauMobileMoney:id,nom', 'plateformeParis:id,nom'])
+            ->when(! $this->estAdmin($user), fn ($q) => $q->where('agence_id', $user->agence_id))
+            ->with(['client:id,nom,telephone', 'agence:id,nom', 'reseauMobileMoney:id,nom', 'plateformeParis:id,nom'])
             ->when($request->filled('statut'), fn ($q) => $q->where('statut', $request->string('statut')))
             ->latest()
             ->get();
@@ -39,7 +51,7 @@ class AgentDemandeController extends Controller
         $this->autoriserAcces($request, $demande);
 
         return response()->json(
-            $demande->load(['client:id,nom,telephone', 'reseauMobileMoney:id,nom', 'plateformeParis:id,nom', 'messages'])
+            $demande->load(['client:id,nom,telephone', 'agence:id,nom', 'reseauMobileMoney:id,nom', 'plateformeParis:id,nom', 'messages'])
         );
     }
 
@@ -47,9 +59,10 @@ class AgentDemandeController extends Controller
     {
         $this->autoriserAcces($request, $demande);
 
-        // La vraie protection contre deux agents validant en même temps
-        // est dans DemandeTransaction::valider() (mise à jour atomique) —
-        // ici on se contente de traduire l'échec en réponse HTTP propre.
+        // La vraie protection contre deux personnes validant en même
+        // temps est dans DemandeTransaction::valider() (mise à jour
+        // atomique) — ici on se contente de traduire l'échec en réponse
+        // HTTP propre.
         try {
             $transaction = $demande->valider($request->user());
         } catch (\RuntimeException $e) {
@@ -64,7 +77,7 @@ class AgentDemandeController extends Controller
         // la demande entière par cette réponse, perd reseau_mobile_money
         // / plateforme_paris / messages (undefined au lieu de l'objet).
         return response()->json([
-            'demande' => $demande->load(['client:id,nom,telephone', 'reseauMobileMoney:id,nom', 'plateformeParis:id,nom', 'messages']),
+            'demande' => $demande->load(['client:id,nom,telephone', 'agence:id,nom', 'reseauMobileMoney:id,nom', 'plateformeParis:id,nom', 'messages']),
             'transaction' => $transaction,
         ]);
     }
@@ -78,7 +91,7 @@ class AgentDemandeController extends Controller
         ]);
 
         $message = $demande->messages()->create([
-            'auteur_type' => 'agent',
+            'auteur_type' => $request->user() instanceof Agent ? 'agent' : 'gerant',
             'auteur_id' => $request->user()->id,
             'message' => $data['message'],
         ]);
@@ -88,7 +101,7 @@ class AgentDemandeController extends Controller
         return response()->json($message, 201);
     }
 
-    /** Sert la preuve de paiement — authentifié, scopé à l'agence de l'agent. */
+    /** Sert la preuve de paiement — authentifié, même portée que les autres actions. */
     public function preuve(Request $request, DemandeTransaction $demande)
     {
         $this->autoriserAcces($request, $demande);
@@ -102,8 +115,19 @@ class AgentDemandeController extends Controller
 
     private function autoriserAcces(Request $request, DemandeTransaction $demande): void
     {
-        if ($demande->agence_id !== $request->user()->agence_id) {
+        $user = $request->user();
+
+        if ($this->estAdmin($user)) {
+            return; // portée réseau entier, aucune restriction par agence
+        }
+
+        if ($demande->agence_id !== $user->agence_id) {
             abort(403, "Cette demande n'appartient pas à votre agence.");
         }
+    }
+
+    private function estAdmin(Agent|User $user): bool
+    {
+        return $user instanceof User && $user->role === 'admin';
     }
 }

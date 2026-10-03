@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     textAlign: 'center',
   },
-  listContent: { paddingHorizontal: 16, paddingBottom: 24, gap: 10 },
+  listContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 24, gap: 10 },
   empty: { color: colors.muted, textAlign: 'center', marginTop: 40 },
   card: { backgroundColor: colors.white, borderRadius: 16, padding: 16 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },

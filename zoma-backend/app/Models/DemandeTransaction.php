@@ -26,6 +26,7 @@ class DemandeTransaction extends Model
         'preuve_paiement',
         'statut',
         'agent_id',
+        'user_id',
         'transaction_id',
     ];
 
@@ -56,6 +57,12 @@ class DemandeTransaction extends Model
     public function agent(): BelongsTo
     {
         return $this->belongsTo(Agent::class);
+    }
+
+    /** Rempli uniquement si c'est un gérant OU un admin (pas un agent) qui a traité la demande. */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function transaction(): BelongsTo
@@ -99,22 +106,35 @@ class DemandeTransaction extends Model
      * la demande redevient disponible pour un autre agent plutôt que de
      * rester bloquée "validée" sans transaction liée.
      *
-     * @throws RuntimeException si un autre agent a validé entre-temps.
+     * $principal est un Agent (cas courant), ou un User — gérant ou
+     * admin, les deux pouvant dépanner (CDC/fil "gérant et admin peuvent
+     * aussi traiter les demandes"). agent_id XOR user_id est rempli sur
+     * la demande ET sur la transaction créée, selon le type réel de
+     * $principal — un seul des deux, jamais les deux.
+     *
+     * @throws RuntimeException si quelqu'un d'autre a validé entre-temps.
      */
-    public function valider(Agent $agent): Transaction
+    public function valider(Agent|User $principal): Transaction
     {
-        return DB::transaction(function () use ($agent) {
+        $estAgent = $principal instanceof Agent;
+
+        return DB::transaction(function () use ($principal, $estAgent) {
             $reclamee = static::where('id', $this->id)
                 ->where('statut', 'en_attente')
-                ->update(['statut' => 'validee', 'agent_id' => $agent->id]);
+                ->update([
+                    'statut' => 'validee',
+                    'agent_id' => $estAgent ? $principal->id : null,
+                    'user_id' => $estAgent ? null : $principal->id,
+                ]);
 
             if ($reclamee === 0) {
-                throw new RuntimeException('Cette demande a déjà été traitée par un autre agent.');
+                throw new RuntimeException('Cette demande a déjà été traitée par quelqu\'un d\'autre.');
             }
 
             $transaction = Transaction::create([
                 'agence_id' => $this->agence_id,
-                'agent_id' => $agent->id,
+                'agent_id' => $estAgent ? $principal->id : null,
+                'user_id' => $estAgent ? null : $principal->id,
                 'type' => $this->type,
                 'reseau_mobile_money_id' => $this->reseau_mobile_money_id,
                 'plateforme_paris_id' => $this->plateforme_paris_id,

@@ -98,7 +98,10 @@ export function HistoryScreen({ navigation }: Props) {
                 disabled={!demandeId}
                 onPress={() =>
                   demandeId &&
-                  navigation.navigate('Demandes', { screen: 'AgentDemandeDetail', params: { demandeId } })
+                  navigation.navigate('Demandes', {
+                    screen: 'AgentDemandeDetail',
+                    params: { demandeId, retourVersHistorique: true },
+                  })
                 }
               >
                 <View style={[styles.iconBox, item.type === 'depot' ? styles.iconBoxDepot : styles.iconBoxRetrait]}>

@@ -61,6 +61,13 @@ export function DemandeDetailScreen({ route }: Props) {
 
   const estValidee = demande.statut === 'validee'
 
+  // Même règle que côté agent : la discussion reste ouverte 24h après
+  // validation, pour signaler un souci directement ici avant de passer
+  // par une réclamation.
+  const UNE_JOURNEE_MS = 24 * 60 * 60 * 1000
+  const discussionOuverte =
+    !estValidee || Date.now() - new Date(demande.updated_at).getTime() < UNE_JOURNEE_MS
+
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
     <KeyboardAvoidingView
@@ -100,19 +107,27 @@ export function DemandeDetailScreen({ route }: Props) {
         renderItem={({ item }) => <MessageBubble message={item} />}
       />
 
-      <View style={styles.inputRow}>
-        <TextInput
-          style={styles.input}
-          value={texte}
-          onChangeText={setTexte}
-          placeholder="Écrire un message..."
-          placeholderTextColor={colors.muted}
-          multiline
-        />
-        <Pressable style={styles.sendButton} onPress={envoyerMessage} disabled={envoi || !texte.trim()}>
-          <Text style={styles.sendButtonText}>{envoi ? '...' : 'Envoyer'}</Text>
-        </Pressable>
-      </View>
+      {!discussionOuverte ? (
+        <View style={styles.inputFerme}>
+          <Text style={styles.inputFermeText}>
+            Demande validée — pour tout souci sur cette transaction, contactez votre agence.
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.inputRow}>
+          <TextInput
+            style={styles.input}
+            value={texte}
+            onChangeText={setTexte}
+            placeholder="Écrire un message..."
+            placeholderTextColor={colors.muted}
+            multiline
+          />
+          <Pressable style={styles.sendButton} onPress={envoyerMessage} disabled={envoi || !texte.trim()}>
+            <Text style={styles.sendButtonText}>{envoi ? '...' : 'Envoyer'}</Text>
+          </Pressable>
+        </View>
+      )}
     </KeyboardAvoidingView>
     </SafeAreaView>
   )
@@ -179,6 +194,13 @@ const styles = StyleSheet.create({
   },
   sendButton: { backgroundColor: colors.primary, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12 },
   sendButtonText: { color: colors.white, fontWeight: '700', fontSize: 14 },
+  inputFerme: {
+    padding: 16,
+    backgroundColor: colors.white,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  inputFermeText: { fontSize: 12, color: colors.muted, textAlign: 'center' },
   badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
   badgeAttente: { backgroundColor: '#FEF3C7' },
   badgeValidee: { backgroundColor: '#D1FAE5' },
