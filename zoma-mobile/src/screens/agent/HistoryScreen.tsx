@@ -2,13 +2,16 @@
 import { useCallback, useEffect, useState } from 'react'
 import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { ArrowDownCircle, ArrowUpCircle } from 'lucide-react-native'
+import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs'
+import { ArrowDownCircle, ArrowUpCircle, ChevronRight } from 'lucide-react-native'
 import { colors } from '../../theme/colors'
 import { getTransactions, getErrorMessage, type Transaction } from '../../lib/api'
+import type { AgentTabParamList } from '../../navigation/AgentNavigator'
 
 type TypeFilter = 'tous' | 'depot' | 'retrait'
+type Props = BottomTabScreenProps<AgentTabParamList, 'Historique'>
 
-export function HistoryScreen() {
+export function HistoryScreen({ navigation }: Props) {
   const [filter, setFilter] = useState<TypeFilter>('tous')
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [page, setPage] = useState(1)
@@ -86,33 +89,45 @@ export function HistoryScreen() {
           onEndReached={onEndReached}
           ListEmptyComponent={<Text style={styles.empty}>Aucune transaction pour l'instant.</Text>}
           ListFooterComponent={loadingMore ? <ActivityIndicator style={{ marginVertical: 16 }} color={colors.primary} /> : null}
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              <View style={[styles.iconBox, item.type === 'depot' ? styles.iconBoxDepot : styles.iconBoxRetrait]}>
-                {item.type === 'depot' ? (
-                  <ArrowDownCircle color={colors.primary} size={18} />
-                ) : (
-                  <ArrowUpCircle color={colors.danger} size={18} />
-                )}
-              </View>
-              <View style={styles.cardBody}>
-                <Text style={styles.cardTitle}>{item.plateforme_paris.nom}</Text>
-                <Text style={styles.cardSubtitle}>
-                  {item.reseau_mobile_money.nom} ·{' '}
-                  {new Date(item.created_at).toLocaleString('fr-FR', {
-                    day: 'numeric',
-                    month: 'short',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
+          renderItem={({ item }) => {
+            const demandeId = item.demande?.id
+
+            return (
+              <Pressable
+                style={styles.card}
+                disabled={!demandeId}
+                onPress={() =>
+                  demandeId &&
+                  navigation.navigate('Demandes', { screen: 'AgentDemandeDetail', params: { demandeId } })
+                }
+              >
+                <View style={[styles.iconBox, item.type === 'depot' ? styles.iconBoxDepot : styles.iconBoxRetrait]}>
+                  {item.type === 'depot' ? (
+                    <ArrowDownCircle color={colors.primary} size={18} />
+                  ) : (
+                    <ArrowUpCircle color={colors.danger} size={18} />
+                  )}
+                </View>
+                <View style={styles.cardBody}>
+                  <Text style={styles.cardTitle}>{item.plateforme_paris.nom}</Text>
+                  <Text style={styles.cardSubtitle}>
+                    {item.reseau_mobile_money.nom} ·{' '}
+                    {new Date(item.created_at).toLocaleString('fr-FR', {
+                      day: 'numeric',
+                      month: 'short',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </Text>
+                </View>
+                <Text style={[styles.cardMontant, item.type === 'depot' ? styles.montantDepot : styles.montantRetrait]}>
+                  {item.type === 'retrait' ? '−' : '+'}
+                  {item.montant.toLocaleString('fr-FR')}
                 </Text>
-              </View>
-              <Text style={[styles.cardMontant, item.type === 'depot' ? styles.montantDepot : styles.montantRetrait]}>
-                {item.type === 'retrait' ? '−' : '+'}
-                {item.montant.toLocaleString('fr-FR')}
-              </Text>
-            </View>
-          )}
+                {demandeId && <ChevronRight size={16} color={colors.muted} />}
+              </Pressable>
+            )
+          }}
         />
       )}
     </SafeAreaView>

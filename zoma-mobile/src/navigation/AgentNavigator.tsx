@@ -1,7 +1,7 @@
 // src/navigation/AgentNavigator.tsx
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
-import { getFocusedRouteNameFromRoute } from '@react-navigation/native'
+import { getFocusedRouteNameFromRoute, type NavigatorScreenParams } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Wallet, Inbox, History, ClipboardCheck, User } from 'lucide-react-native'
 import { colors } from '../theme/colors'
@@ -15,7 +15,10 @@ import type { AgentDemandesStackParamList } from './AgentDemandesTypes'
 
 export type AgentTabParamList = {
   Transaction: undefined
-  Demandes: undefined
+  // NavigatorScreenParams permet de naviguer depuis un autre onglet
+  // (Historique) directement vers l'écran de détail imbriqué dans
+  // celui-ci, plutôt que de dupliquer l'écran dans une autre pile.
+  Demandes: NavigatorScreenParams<AgentDemandesStackParamList> | undefined
   Historique: undefined
   Releve: undefined
   Profil: undefined

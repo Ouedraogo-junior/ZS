@@ -19,6 +19,8 @@ export interface Transaction {
   created_at: string
   reseau_mobile_money: ReferenceItem
   plateforme_paris: ReferenceItem
+  /** Présent uniquement si cette transaction vient d'une demande validée (absent pour une saisie directe). */
+  demande?: { id: number } | null
 }
 
 export interface NewTransactionInput {

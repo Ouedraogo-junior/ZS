@@ -61,7 +61,7 @@ class TransactionController extends Controller
 
         $query = Transaction::query()
             ->where('agent_id', $agent->id)
-            ->with(['reseauMobileMoney', 'plateformeParis'])
+            ->with(['reseauMobileMoney', 'plateformeParis', 'demande:id,transaction_id'])
             ->latest();
 
         if ($type = $request->query('type')) {
@@ -87,5 +87,27 @@ class TransactionController extends Controller
         return response()->json(
             $query->paginate($request->integer('par_page', 25))
         );
+    }
+
+    /**
+     * Un agent annule sa propre transaction — seulement dans la fenêtre
+     * de temps autorisée (Transaction::annulableParAgent), et avec un
+     * motif obligatoire (CDC section 4 : traçabilité de toute annulation).
+     */
+    public function annuler(Request $request, Transaction $transaction)
+    {
+        $agent = $request->user();
+
+        if (! $transaction->annulableParAgent($agent)) {
+            abort(403, "Cette transaction ne peut plus être annulée (délai dépassé ou transaction d'un autre agent).");
+        }
+
+        $data = $request->validate([
+            'motif' => ['required', 'string', 'max:500'],
+        ]);
+
+        $transaction->annuler($agent, $data['motif']);
+
+        return response()->json(['message' => 'Transaction annulée.']);
     }
 }

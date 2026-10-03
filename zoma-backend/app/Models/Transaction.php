@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Transaction extends Model
@@ -48,6 +49,15 @@ class Transaction extends Model
         return $this->belongsTo(PlateformeParis::class);
     }
 
+    /**
+     * La demande (s'il y en a une) qui a créé cette transaction via
+     * validation — absente pour une saisie directe au guichet.
+     */
+    public function demande(): HasOne
+    {
+        return $this->hasOne(DemandeTransaction::class, 'transaction_id');
+    }
+
     public function estDepot(): bool
     {
         return $this->type === 'depot';
@@ -56,6 +66,35 @@ class Transaction extends Model
     public function estRetrait(): bool
     {
         return $this->type === 'retrait';
+    }
+
+    /**
+     * Annule la transaction (soft delete) en gardant la trace de qui l'a
+     * annulée et pourquoi (CDC section 4). $principal est l'Agent ou le
+     * User (gérant/admin) authentifié qui déclenche l'annulation.
+     */
+    public function annuler(Agent|User $principal, string $motif): void
+    {
+        $this->annule_par_type = $principal instanceof Agent ? 'agent' : 'staff';
+        $this->annule_par_id = $principal->id;
+        $this->motif_annulation = $motif;
+        $this->save();
+
+        $this->delete();
+    }
+
+    /** Minutes après la création pendant lesquelles un agent peut encore annuler sa propre transaction. */
+    private const MAX_MINUTES_ANNULATION_AGENT = 10;
+
+    /**
+     * Un agent ne peut annuler que sa propre transaction, et seulement
+     * dans les MAX_MINUTES_ANNULATION_AGENT minutes suivant la saisie —
+     * corriger une erreur immédiate, pas revenir dessus des heures après.
+     */
+    public function annulableParAgent(Agent $agent): bool
+    {
+        return $this->agent_id === $agent->id
+            && $this->created_at->gt(now()->subMinutes(self::MAX_MINUTES_ANNULATION_AGENT));
     }
 
     /**
