@@ -1,17 +1,21 @@
 // src/screens/gerant/GerantDashboardScreen.tsx
 import { useCallback, useState } from 'react'
-import { View, Text, ScrollView, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native'
+import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFocusEffect } from '@react-navigation/native'
-import { ArrowDownCircle, ArrowUpCircle, Receipt, Users, MessageSquareWarning } from 'lucide-react-native'
+import type { NativeStackScreenProps } from '@react-navigation/native-stack'
+import { ArrowDownCircle, ArrowUpCircle, Receipt, Users, MessageSquareWarning, Wallet, History } from 'lucide-react-native'
 import { colors } from '../../theme/colors'
 import { getGerantDashboard, getErrorMessage, type GerantDashboard } from '../../lib/api'
+import type { GerantDashboardStackParamList } from '../../navigation/GerantDashboardTypes'
+
+type Props = NativeStackScreenProps<GerantDashboardStackParamList, 'GerantDashboardAccueil'>
 
 function joursCourts(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('fr-FR', { weekday: 'short' })
 }
 
-export function GerantDashboardScreen() {
+export function GerantDashboardScreen({ navigation }: Props) {
   const [data, setData] = useState<GerantDashboard | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -49,6 +53,17 @@ export function GerantDashboardScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {error && <Text style={styles.error}>{error}</Text>}
+
+        <View style={styles.quickActions}>
+          <Pressable style={styles.quickAction} onPress={() => navigation.navigate('GerantTransaction')}>
+            <Wallet color={colors.primary} size={20} />
+            <Text style={styles.quickActionText}>Nouvelle transaction</Text>
+          </Pressable>
+          <Pressable style={styles.quickAction} onPress={() => navigation.navigate('GerantHistorique')}>
+            <History color={colors.primary} size={20} />
+            <Text style={styles.quickActionText}>Historique</Text>
+          </Pressable>
+        </View>
 
         <View style={styles.kpiGrid}>
           <View style={styles.kpiCard}>
@@ -150,6 +165,18 @@ const styles = StyleSheet.create({
     padding: 10,
     textAlign: 'center',
   },
+  quickActions: { flexDirection: 'row', gap: 10 },
+  quickAction: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.white,
+    borderRadius: 14,
+    paddingVertical: 14,
+  },
+  quickActionText: { fontSize: 13, fontWeight: '700', color: colors.text },
   kpiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   kpiCard: { width: '47%', backgroundColor: colors.white, borderRadius: 16, padding: 14 },
   kpiCardWide: { width: '100%' },

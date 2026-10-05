@@ -23,7 +23,14 @@ import {
   type ReferenceItem,
 } from '../../lib/api'
 
-export function TransactionScreen() {
+interface TransactionScreenProps {
+  base?: '/agent' | '/staff'
+  // false quand un en-tête natif (avec bouton retour) est déjà affiché
+  // par la pile parente — évite un titre en double (cas du gérant).
+  showHeader?: boolean
+}
+
+export function TransactionScreen({ base = '/agent', showHeader = true }: TransactionScreenProps) {
   const [reseaux, setReseaux] = useState<ReferenceItem[]>([])
   const [plateformes, setPlateformes] = useState<ReferenceItem[]>([])
   const [loadingRef, setLoadingRef] = useState(true)
@@ -70,14 +77,17 @@ export function TransactionScreen() {
     setSubmitting(true)
     setError(null)
     try {
-      await submitTransaction({
-        type,
-        reseau_mobile_money_id: reseauId,
-        plateforme_paris_id: plateformeId,
-        montant: montantNombre,
-        telephone_client: telephoneClient.trim(),
-        reference_paiement: referencePaiement.trim() || undefined,
-      })
+      await submitTransaction(
+        {
+          type,
+          reseau_mobile_money_id: reseauId,
+          plateforme_paris_id: plateformeId,
+          montant: montantNombre,
+          telephone_client: telephoneClient.trim(),
+          reference_paiement: referencePaiement.trim() || undefined,
+        },
+        base
+      )
       resetForm()
       setSuccess(true)
     } catch (err) {
@@ -108,8 +118,8 @@ export function TransactionScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.screen} edges={['top']}>
-      <Text style={styles.title}>Nouvelle transaction</Text>
+    <SafeAreaView style={styles.screen} edges={showHeader ? ['top'] : []}>
+      {showHeader && <Text style={styles.title}>Nouvelle transaction</Text>}
 
       <KeyboardAvoidingView
         style={styles.container}

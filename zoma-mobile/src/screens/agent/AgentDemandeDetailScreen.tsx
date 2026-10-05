@@ -29,12 +29,15 @@ import {
   getErrorMessage,
   type AgentDemande,
   type DemandeMessage,
+  type DemandesBase,
 } from '../../lib/api'
 import type { AgentDemandesStackParamList } from '../../navigation/AgentDemandesTypes'
 
-type Props = NativeStackScreenProps<AgentDemandesStackParamList, 'AgentDemandeDetail'>
+// base permet de réutiliser cet écran pour le gérant ("/staff") et
+// l'admin ("/admin") — voir AgentDemandesListScreen pour le même principe.
+type Props = NativeStackScreenProps<AgentDemandesStackParamList, 'AgentDemandeDetail'> & { base?: DemandesBase }
 
-export function AgentDemandeDetailScreen({ route, navigation }: Props) {
+export function AgentDemandeDetailScreen({ route, navigation, base = '/agent' }: Props) {
   const { demandeId, retourVersHistorique } = route.params
   const headerHeight = useHeaderHeight()
 
@@ -71,10 +74,10 @@ export function AgentDemandeDetailScreen({ route, navigation }: Props) {
   }
 
   const load = useCallback(() => {
-    getAgentDemande(demandeId)
+    getAgentDemande(demandeId, base)
       .then(setDemande)
       .catch(err => setError(getErrorMessage(err)))
-  }, [demandeId])
+  }, [demandeId, base])
 
   useFocusEffect(load)
 
@@ -87,18 +90,18 @@ export function AgentDemandeDetailScreen({ route, navigation }: Props) {
     // ça enlève un travail inutile qui continuerait en arrière-plan.
     let annule = false
 
-    fetchPreuveImageDataUri(demandeId)
+    fetchPreuveImageDataUri(demandeId, base)
       .then(uri => { if (!annule) setPreuveDataUri(uri) })
       .catch(() => { if (!annule) setPreuveErreur(true) })
 
     return () => { annule = true }
-  }, [demande?.preuve_paiement, demandeId])
+  }, [demande?.preuve_paiement, demandeId, base])
 
   const envoyerMessage = async () => {
     if (!texte.trim() || envoi) return
     setEnvoi(true)
     try {
-      const message = await sendAgentDemandeMessage(demandeId, texte.trim())
+      const message = await sendAgentDemandeMessage(demandeId, texte.trim(), base)
       setTexte('')
       setDemande(prev => (prev ? { ...prev, messages: [...(prev.messages ?? []), message] } : prev))
     } catch (err) {
@@ -124,7 +127,7 @@ export function AgentDemandeDetailScreen({ route, navigation }: Props) {
     setValidation(true)
     setError(null)
     try {
-      const data = await validerDemande(demandeId)
+      const data = await validerDemande(demandeId, base)
       setDemande(data.demande)
     } catch (err) {
       setError(getErrorMessage(err))
@@ -168,6 +171,10 @@ export function AgentDemandeDetailScreen({ route, navigation }: Props) {
           </Text>
           <Text style={styles.summaryMontant}>{demande.montant.toLocaleString('fr-FR')} F CFA</Text>
 
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Agence</Text>
+            <Text style={styles.infoValue}>{demande.agence.nom}</Text>
+          </View>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Client</Text>
             <Text style={styles.infoValue}>{demande.client.nom}</Text>
@@ -236,6 +243,15 @@ export function AgentDemandeDetailScreen({ route, navigation }: Props) {
 
         {error && <Text style={styles.error}>{error}</Text>}
 
+        {!estEnAttente && (demande.agent || demande.user) && (
+          <View style={styles.summary}>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Traitée par</Text>
+              <Text style={styles.infoValue}>{demande.agent?.nom ?? demande.user?.nom}</Text>
+            </View>
+          </View>
+        )}
+
         {estEnAttente ? (
           <Pressable style={styles.validerButton} onPress={confirmerValidation} disabled={validation}>
             {validation ? <ActivityIndicator color={colors.white} /> : <Text style={styles.validerText}>Valider la demande</Text>}
@@ -250,18 +266,18 @@ export function AgentDemandeDetailScreen({ route, navigation }: Props) {
         {(demande.messages ?? []).length === 0 && (
           <Text style={styles.emptyThread}>Aucun message pour l'instant.</Text>
         )}
-        {(demande.messages ?? []).map((message: DemandeMessage) => (
-          <View
-            key={message.id}
-            style={[styles.bubbleRow, message.auteur_type === 'agent' ? styles.bubbleRowAgent : styles.bubbleRowClient]}
-          >
-            <View style={[styles.bubble, message.auteur_type === 'agent' ? styles.bubbleAgent : styles.bubbleClient]}>
-              <Text style={message.auteur_type === 'agent' ? styles.bubbleTextAgent : styles.bubbleTextClient}>
-                {message.message}
-              </Text>
+        {(demande.messages ?? []).map((message: DemandeMessage) => {
+          // 'agent' et 'gerant' sont tous deux "côté staff" — même
+          // alignement, peu importe lequel des deux a écrit.
+          const cotePersonnel = message.auteur_type !== 'client'
+          return (
+            <View key={message.id} style={[styles.bubbleRow, cotePersonnel ? styles.bubbleRowAgent : styles.bubbleRowClient]}>
+              <View style={[styles.bubble, cotePersonnel ? styles.bubbleAgent : styles.bubbleClient]}>
+                <Text style={cotePersonnel ? styles.bubbleTextAgent : styles.bubbleTextClient}>{message.message}</Text>
+              </View>
             </View>
-          </View>
-        ))}
+          )
+        })}
       </ScrollView>
 
       {discussionOuverte ? (

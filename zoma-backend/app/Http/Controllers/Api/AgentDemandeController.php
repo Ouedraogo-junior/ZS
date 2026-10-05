@@ -38,7 +38,14 @@ class AgentDemandeController extends Controller
 
         $demandes = DemandeTransaction::query()
             ->when(! $this->estAdmin($user), fn ($q) => $q->where('agence_id', $user->agence_id))
-            ->with(['client:id,nom,telephone', 'agence:id,nom', 'reseauMobileMoney:id,nom', 'plateformeParis:id,nom'])
+            ->with([
+                'client:id,nom,telephone',
+                'agence:id,nom',
+                'reseauMobileMoney:id,nom',
+                'plateformeParis:id,nom',
+                'agent:id,nom',
+                'user:id,nom',
+            ])
             ->when($request->filled('statut'), fn ($q) => $q->where('statut', $request->string('statut')))
             ->latest()
             ->get();
@@ -51,7 +58,15 @@ class AgentDemandeController extends Controller
         $this->autoriserAcces($request, $demande);
 
         return response()->json(
-            $demande->load(['client:id,nom,telephone', 'agence:id,nom', 'reseauMobileMoney:id,nom', 'plateformeParis:id,nom', 'messages'])
+            $demande->load([
+                'client:id,nom,telephone',
+                'agence:id,nom',
+                'reseauMobileMoney:id,nom',
+                'plateformeParis:id,nom',
+                'agent:id,nom',
+                'user:id,nom',
+                'messages',
+            ])
         );
     }
 
@@ -77,7 +92,15 @@ class AgentDemandeController extends Controller
         // la demande entière par cette réponse, perd reseau_mobile_money
         // / plateforme_paris / messages (undefined au lieu de l'objet).
         return response()->json([
-            'demande' => $demande->load(['client:id,nom,telephone', 'agence:id,nom', 'reseauMobileMoney:id,nom', 'plateformeParis:id,nom', 'messages']),
+            'demande' => $demande->load([
+                'client:id,nom,telephone',
+                'agence:id,nom',
+                'reseauMobileMoney:id,nom',
+                'plateformeParis:id,nom',
+                'agent:id,nom',
+                'user:id,nom',
+                'messages',
+            ]),
             'transaction' => $transaction,
         ]);
     }

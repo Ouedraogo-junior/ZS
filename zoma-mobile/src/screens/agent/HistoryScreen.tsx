@@ -9,9 +9,14 @@ import { getTransactions, getErrorMessage, type Transaction } from '../../lib/ap
 import type { AgentTabParamList } from '../../navigation/AgentNavigator'
 
 type TypeFilter = 'tous' | 'depot' | 'retrait'
-type Props = BottomTabScreenProps<AgentTabParamList, 'Historique'>
+type Props = Partial<BottomTabScreenProps<AgentTabParamList, 'Historique'>> & {
+  base?: '/agent' | '/staff'
+  // false quand un en-tête natif est déjà affiché par la pile parente
+  // (cas du gérant) — évite un titre en double.
+  showHeader?: boolean
+}
 
-export function HistoryScreen({ navigation }: Props) {
+export function HistoryScreen({ navigation, base = '/agent', showHeader = true }: Props) {
   const [filter, setFilter] = useState<TypeFilter>('tous')
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [page, setPage] = useState(1)
@@ -28,10 +33,13 @@ export function HistoryScreen({ navigation }: Props) {
       if (mode === 'more') setLoadingMore(true)
       setError(null)
       try {
-        const result = await getTransactions({
-          type: filter === 'tous' ? undefined : filter,
-          page: targetPage,
-        })
+        const result = await getTransactions(
+          {
+            type: filter === 'tous' ? undefined : filter,
+            page: targetPage,
+          },
+          base
+        )
         setTransactions(prev => (mode === 'more' ? [...prev, ...result.data] : result.data))
         setPage(result.current_page)
         setLastPage(result.last_page)
@@ -43,7 +51,7 @@ export function HistoryScreen({ navigation }: Props) {
         setLoadingMore(false)
       }
     },
-    [filter]
+    [filter, base]
   )
 
   useEffect(() => {
@@ -56,8 +64,8 @@ export function HistoryScreen({ navigation }: Props) {
   }
 
   return (
-    <SafeAreaView style={styles.screen} edges={['top']}>
-      <Text style={styles.title}>Historique</Text>
+    <SafeAreaView style={styles.screen} edges={showHeader ? ['top'] : []}>
+      {showHeader && <Text style={styles.title}>Historique</Text>}
 
       <View style={styles.filterRow}>
         {(['tous', 'depot', 'retrait'] as const).map(value => (
@@ -91,16 +99,17 @@ export function HistoryScreen({ navigation }: Props) {
           ListFooterComponent={loadingMore ? <ActivityIndicator style={{ marginVertical: 16 }} color={colors.primary} /> : null}
           renderItem={({ item }) => {
             const demandeId = item.demande?.id
+            const peutOuvrir = base === '/agent' && !!demandeId && !!navigation
 
             return (
               <Pressable
                 style={styles.card}
-                disabled={!demandeId}
+                disabled={!peutOuvrir}
                 onPress={() =>
-                  demandeId &&
-                  navigation.navigate('Demandes', {
+                  peutOuvrir &&
+                  navigation!.navigate('Demandes', {
                     screen: 'AgentDemandeDetail',
-                    params: { demandeId, retourVersHistorique: true },
+                    params: { demandeId: demandeId!, retourVersHistorique: true },
                   })
                 }
               >
@@ -127,7 +136,7 @@ export function HistoryScreen({ navigation }: Props) {
                   {item.type === 'retrait' ? '−' : '+'}
                   {item.montant.toLocaleString('fr-FR')}
                 </Text>
-                {demandeId && <ChevronRight size={16} color={colors.muted} />}
+                {peutOuvrir && <ChevronRight size={16} color={colors.muted} />}
               </Pressable>
             )
           }}

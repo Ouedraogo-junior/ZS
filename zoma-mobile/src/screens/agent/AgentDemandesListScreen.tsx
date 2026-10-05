@@ -5,10 +5,13 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFocusEffect } from '@react-navigation/native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { colors } from '../../theme/colors'
-import { getAgentDemandes, getErrorMessage, type AgentDemande } from '../../lib/api'
+import { getAgentDemandes, getErrorMessage, type AgentDemande, type DemandesBase } from '../../lib/api'
 import type { AgentDemandesStackParamList } from '../../navigation/AgentDemandesTypes'
 
-type Props = NativeStackScreenProps<AgentDemandesStackParamList, 'AgentDemandesListe'>
+// base permet de réutiliser cet écran tel quel pour le gérant ("/staff")
+// et plus tard l'admin ("/admin") — même backend, même UI, juste l'URL
+// de base qui change (voir AgentDemandeController côté serveur).
+type Props = NativeStackScreenProps<AgentDemandesStackParamList, 'AgentDemandesListe'> & { base?: DemandesBase }
 type Filtre = 'en_attente' | 'validee'
 
 function StatutBadge({ statut }: { statut: AgentDemande['statut'] }) {
@@ -22,17 +25,17 @@ function StatutBadge({ statut }: { statut: AgentDemande['statut'] }) {
   )
 }
 
-export function AgentDemandesListScreen({ navigation }: Props) {
+export function AgentDemandesListScreen({ navigation, base = '/agent' }: Props) {
   const [filtre, setFiltre] = useState<Filtre>('en_attente')
   const [demandes, setDemandes] = useState<AgentDemande[] | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(() => {
-    getAgentDemandes(filtre)
+    getAgentDemandes(filtre, base)
       .then(setDemandes)
       .catch(err => setError(getErrorMessage(err)))
-  }, [filtre])
+  }, [filtre, base])
 
   useFocusEffect(load)
 
@@ -93,6 +96,7 @@ export function AgentDemandesListScreen({ navigation }: Props) {
               </View>
               <Text style={styles.cardSubtitle}>
                 {item.client.nom} · {item.client.telephone}
+                {item.statut === 'validee' && (item.agent || item.user) && ` · ${item.agent?.nom ?? item.user?.nom}`}
               </Text>
               <Text style={styles.cardMontant}>{item.montant.toLocaleString('fr-FR')} F CFA</Text>
             </Pressable>

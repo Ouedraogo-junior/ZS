@@ -1,6 +1,7 @@
 // src/screens/client/ClientLoginScreen.tsx
 import { useState } from 'react'
 import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors } from '../../theme/colors'
 import { useAuth } from '../../hooks/useAuth'
 import { getErrorMessage } from '../../lib/api'
@@ -28,6 +29,7 @@ export function ClientLoginScreen() {
   }
 
   return (
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -62,6 +64,7 @@ export function ClientLoginScreen() {
         {submitting ? <ActivityIndicator color={colors.white} /> : <Text style={styles.buttonText}>Continuer</Text>}
       </Pressable>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   )
 }
 

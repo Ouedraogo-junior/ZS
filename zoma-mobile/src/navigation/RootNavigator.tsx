@@ -9,7 +9,8 @@ import { ClientLoginScreen } from '../screens/client/ClientLoginScreen'
 import { StaffLoginScreen } from '../screens/shared/StaffLoginScreen'
 import { ClientNavigator } from './ClientNavigator'
 import { AgentNavigator } from './AgentNavigator'
-import { GerantHomeScreen } from '../screens/gerant/GerantHomeScreen'
+import { GerantNavigator } from './GerantNavigator'
+import { AdminNonSupporteScreen } from '../screens/shared/AdminNonSupporteScreen'
 
 export type RootStackParamList = {
   RoleSelect: undefined
@@ -42,10 +43,8 @@ export function RootNavigator() {
 
       {state.status === 'client' && <ClientNavigator />}
       {state.status === 'staff' && state.role === 'agent' && <AgentNavigator />}
-
-      {/* Gérant : toujours temporaire, à construire à l'étape suivante
-          (tableau de bord, réclamations...). */}
-      {state.status === 'staff' && (state.role === 'gerant' || state.role === 'admin') && <GerantHomeScreen />}
+      {state.status === 'staff' && state.role === 'gerant' && <GerantNavigator />}
+      {state.status === 'staff' && state.role === 'admin' && <AdminNonSupporteScreen />}
     </NavigationContainer>
   )
 }

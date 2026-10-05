@@ -3,23 +3,29 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Agent;
 use App\Models\Transaction;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class TransactionController extends Controller
 {
     /**
-     * Enregistrer une transaction (dépôt ou retrait).
+     * Enregistrer une transaction (dépôt ou retrait) — utilisé par les
+     * agents (guichet) ET les gérants (dépannage, CDC/fil "le gérant
+     * doit aussi pouvoir faire ce que font les agents"). agent_id XOR
+     * user_id est rempli selon le type réel du principal, jamais les
+     * deux (même principe que DemandeTransaction::valider()).
      *
-     * agent_id / agence_id ne viennent jamais du client : toujours déduits
-     * de l'agent authentifié (garanti par le middleware role:agent), pour
-     * qu'un agent ne puisse jamais enregistrer une transaction au nom d'un
-     * autre ou d'une autre agence.
+     * agent_id/user_id/agence_id ne viennent jamais du client : toujours
+     * déduits du principal authentifié, pour que personne ne puisse
+     * enregistrer une transaction au nom d'un autre ou d'une autre agence.
      */
     public function store(Request $request)
     {
-        $agent = $request->user();
+        $principal = $request->user();
+        $estAgent = $principal instanceof Agent;
 
         $data = $request->validate([
             'type' => ['required', Rule::in(['depot', 'retrait'])],
@@ -38,8 +44,9 @@ class TransactionController extends Controller
 
         $transaction = Transaction::create([
             ...$data,
-            'agent_id' => $agent->id,
-            'agence_id' => $agent->agence_id,
+            'agent_id' => $estAgent ? $principal->id : null,
+            'user_id' => $estAgent ? null : $principal->id,
+            'agence_id' => $principal->agence_id,
         ]);
 
         return response()->json([
@@ -48,19 +55,20 @@ class TransactionController extends Controller
     }
 
     /**
-     * Historique de l'agent authentifié UNIQUEMENT (CDC section 9 :
-     * un agent ne voit que ses propres transactions, pas celles de
-     * toute l'agence).
+     * Historique PERSONNEL du principal authentifié UNIQUEMENT (CDC
+     * section 9 : on ne voit que ses propres transactions, pas celles
+     * de toute l'agence) — vrai pour un agent comme pour un gérant.
      *
      * Filtres optionnels (query string) : type, reseau_mobile_money_id,
      * plateforme_paris_id, du (date début), au (date fin).
      */
     public function index(Request $request)
     {
-        $agent = $request->user();
+        $principal = $request->user();
+        $estAgent = $principal instanceof Agent;
 
         $query = Transaction::query()
-            ->where('agent_id', $agent->id)
+            ->where($estAgent ? 'agent_id' : 'user_id', $principal->id)
             ->with(['reseauMobileMoney', 'plateformeParis', 'demande:id,transaction_id'])
             ->latest();
 

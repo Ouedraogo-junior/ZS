@@ -89,6 +89,12 @@ Route::middleware(['idle', 'auth:sanctum', 'role:gerant,admin'])->group(function
 Route::middleware(['idle', 'auth:sanctum', 'role:gerant'])->group(function () {
     Route::get('/staff/dashboard', [DashboardController::class, 'gerant']);
 
+    // Mêmes méthodes que côté agent (TransactionController) — un gérant
+    // peut aussi saisir une transaction directement et consulter son
+    // propre historique personnel.
+    Route::post('/staff/transactions', [TransactionController::class, 'store']);
+    Route::get('/staff/transactions-personnelles', [TransactionController::class, 'index']);
+
     // Mêmes méthodes que côté agent (AgentDemandeController) — un
     // gérant peut aussi traiter les demandes de son agence (dépannage).
     Route::get('/staff/demandes', [AgentDemandeController::class, 'index']);

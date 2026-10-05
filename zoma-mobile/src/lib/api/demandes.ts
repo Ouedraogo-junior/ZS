@@ -10,7 +10,7 @@ import type { ReferenceItem } from './reference'
 export interface DemandeMessage {
   id: number
   demande_transaction_id: number
-  auteur_type: 'client' | 'agent'
+  auteur_type: 'client' | 'agent' | 'gerant'
   auteur_id: number
   message: string
   created_at: string

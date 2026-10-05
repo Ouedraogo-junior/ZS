@@ -32,9 +32,16 @@ export interface NewTransactionInput {
   reference_paiement?: string
 }
 
-/** store() renvoie { transaction: {...} } — encapsulé, pas l'objet direct. */
-export async function submitTransaction(input: NewTransactionInput): Promise<Transaction> {
-  const data = await apiFetch<{ transaction: Transaction }>('/agent/transactions', {
+/**
+ * base permet de réutiliser cet écran pour le gérant ("/staff") — le
+ * chemin GET diffère en revanche ("/staff/transactions-personnelles"),
+ * voir getTransactions ci-dessous.
+ */
+export async function submitTransaction(
+  input: NewTransactionInput,
+  base: '/agent' | '/staff' = '/agent'
+): Promise<Transaction> {
+  const data = await apiFetch<{ transaction: Transaction }>(`${base}/transactions`, {
     method: 'POST',
     body: JSON.stringify(input),
   })
@@ -58,11 +65,17 @@ export interface PaginatedTransactions {
   total: number
 }
 
-export function getTransactions(filters: TransactionsFilters = {}): Promise<PaginatedTransactions> {
+export function getTransactions(
+  filters: TransactionsFilters = {},
+  base: '/agent' | '/staff' = '/agent'
+): Promise<PaginatedTransactions> {
   const query = new URLSearchParams()
   Object.entries(filters).forEach(([key, value]) => {
     if (value !== undefined && value !== '') query.set(key, String(value))
   })
   const qs = query.toString()
-  return apiFetch(`/agent/transactions${qs ? `?${qs}` : ''}`)
+  // Chemin distinct côté gérant : /staff/transactions est déjà pris par
+  // l'historique de toute l'agence (StaffTransactionController, web).
+  const path = base === '/agent' ? '/agent/transactions' : '/staff/transactions-personnelles'
+  return apiFetch(`${path}${qs ? `?${qs}` : ''}`)
 }
