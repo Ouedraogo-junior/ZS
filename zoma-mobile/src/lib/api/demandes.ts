@@ -12,7 +12,12 @@ export interface DemandeMessage {
   demande_transaction_id: number
   auteur_type: 'client' | 'agent' | 'gerant'
   auteur_id: number
-  message: string
+  /** Texte du message — absent pour une note vocale seule. */
+  message: string | null
+  /** Vrai si le message contient une note vocale (le fichier se récupère via une route authentifiée). */
+  has_audio: boolean
+  /** Durée de la note vocale en secondes, pour l'affichage. */
+  audio_duree: number | null
   created_at: string
 }
 

@@ -3,8 +3,6 @@ import { useCallback, useState } from 'react'
 import {
   View,
   Text,
-  TextInput,
-  Pressable,
   FlatList,
   StyleSheet,
   ActivityIndicator,
@@ -16,7 +14,16 @@ import { useHeaderHeight } from '@react-navigation/elements'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors } from '../../theme/colors'
-import { getDemande, sendDemandeMessage, getErrorMessage, type Demande, type DemandeMessage } from '../../lib/api'
+import { ComposeurMessage } from '../../components/ComposeurMessage'
+import { NoteVocale } from '../../components/NoteVocale'
+import {
+  getDemande,
+  sendDemandeMessage,
+  envoyerNoteVocale,
+  getErrorMessage,
+  type Demande,
+  type DemandeMessage,
+} from '../../lib/api'
 import type { MesDemandesStackParamList } from '../../navigation/ClientNavigator'
 
 type Props = NativeStackScreenProps<MesDemandesStackParamList, 'DemandeDetail'>
@@ -26,8 +33,6 @@ export function DemandeDetailScreen({ route }: Props) {
   const headerHeight = useHeaderHeight()
   const [demande, setDemande] = useState<Demande | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [texte, setTexte] = useState('')
-  const [envoi, setEnvoi] = useState(false)
 
   const load = useCallback(() => {
     getDemande(demandeId)
@@ -37,18 +42,17 @@ export function DemandeDetailScreen({ route }: Props) {
 
   useFocusEffect(load)
 
-  const envoyerMessage = async () => {
-    if (!texte.trim() || envoi) return
-    setEnvoi(true)
-    try {
-      const message = await sendDemandeMessage(demandeId, texte.trim())
-      setTexte('')
-      setDemande(prev => (prev ? { ...prev, messages: [...(prev.messages ?? []), message] } : prev))
-    } catch (err) {
-      setError(getErrorMessage(err))
-    } finally {
-      setEnvoi(false)
-    }
+  const ajouterMessage = (message: DemandeMessage) =>
+    setDemande(prev => (prev ? { ...prev, messages: [...(prev.messages ?? []), message] } : prev))
+
+  // Les deux fonctions laissent remonter l'erreur : ComposeurMessage la
+  // transmet à setError (via onErreur).
+  const envoyerTexte = async (texte: string) => {
+    ajouterMessage(await sendDemandeMessage(demandeId, texte))
+  }
+
+  const envoyerAudio = async (uri: string, dureeSecondes: number) => {
+    ajouterMessage(await envoyerNoteVocale('/client', demandeId, uri, dureeSecondes))
   }
 
   if (!demande) {
@@ -105,7 +109,7 @@ export function DemandeDetailScreen({ route }: Props) {
             Un souci, une précision à apporter ? Écrivez un message ci-dessous.
           </Text>
         }
-        renderItem={({ item }) => <MessageBubble message={item} />}
+        renderItem={({ item }) => <MessageBubble message={item} demandeId={demandeId} />}
       />
 
       {!discussionOuverte ? (
@@ -115,31 +119,36 @@ export function DemandeDetailScreen({ route }: Props) {
           </Text>
         </View>
       ) : (
-        <View style={styles.inputRow}>
-          <TextInput
-            style={styles.input}
-            value={texte}
-            onChangeText={setTexte}
-            placeholder="Écrire un message..."
-            placeholderTextColor={colors.muted}
-            multiline
-          />
-          <Pressable style={styles.sendButton} onPress={envoyerMessage} disabled={envoi || !texte.trim()}>
-            <Text style={styles.sendButtonText}>{envoi ? '...' : 'Envoyer'}</Text>
-          </Pressable>
-        </View>
+        <ComposeurMessage
+          onEnvoyerTexte={envoyerTexte}
+          onEnvoyerAudio={envoyerAudio}
+          onErreur={setError}
+        />
       )}
     </KeyboardAvoidingView>
     </SafeAreaView>
   )
 }
 
-function MessageBubble({ message }: { message: DemandeMessage }) {
+function MessageBubble({ message, demandeId }: { message: DemandeMessage; demandeId: number }) {
   const estClient = message.auteur_type === 'client'
   return (
     <View style={[styles.bubbleRow, estClient ? styles.bubbleRowClient : styles.bubbleRowAgent]}>
       <View style={[styles.bubble, estClient ? styles.bubbleClient : styles.bubbleAgent]}>
-        <Text style={estClient ? styles.bubbleTextClient : styles.bubbleTextAgent}>{message.message}</Text>
+        {message.has_audio && (
+          <NoteVocale
+            base="/client"
+            demandeId={demandeId}
+            messageId={message.id}
+            dureeSecondes={message.audio_duree}
+            surFondSombre={estClient}
+          />
+        )}
+        {!!message.message && (
+          <Text style={[estClient ? styles.bubbleTextClient : styles.bubbleTextAgent, message.has_audio && { marginTop: 8 }]}>
+            {message.message}
+          </Text>
+        )}
       </View>
     </View>
   )
@@ -172,29 +181,6 @@ const styles = StyleSheet.create({
   bubbleAgent: { backgroundColor: colors.white, borderBottomLeftRadius: 4 },
   bubbleTextClient: { color: colors.white, fontSize: 14 },
   bubbleTextAgent: { color: colors.text, fontSize: 14 },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 8,
-    padding: 12,
-    backgroundColor: colors.white,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  input: {
-    flex: 1,
-    minHeight: 44,
-    maxHeight: 100,
-    borderWidth: 2,
-    borderColor: colors.border,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 15,
-    color: colors.text,
-  },
-  sendButton: { backgroundColor: colors.primary, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12 },
-  sendButtonText: { color: colors.white, fontWeight: '700', fontSize: 14 },
   inputFerme: {
     padding: 16,
     backgroundColor: colors.white,

@@ -4,9 +4,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Events\DemandeValidee;
-use App\Events\NouveauMessageDemande;
+use App\Http\Controllers\Api\Concerns\GereMessagesDemande;
 use App\Http\Controllers\Controller;
 use App\Models\Agent;
+use App\Models\DemandeMessage;
 use App\Models\DemandeTransaction;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -32,6 +33,8 @@ use Illuminate\Support\Facades\Storage;
  */
 class AgentDemandeController extends Controller
 {
+    use GereMessagesDemande;
+
     public function index(Request $request)
     {
         $user = $request->user();
@@ -109,19 +112,21 @@ class AgentDemandeController extends Controller
     {
         $this->autoriserAcces($request, $demande);
 
-        $data = $request->validate([
-            'message' => ['required', 'string', 'max:1000'],
-        ]);
-
-        $message = $demande->messages()->create([
-            'auteur_type' => $request->user() instanceof Agent ? 'agent' : 'gerant',
-            'auteur_id' => $request->user()->id,
-            'message' => $data['message'],
-        ]);
-
-        event(new NouveauMessageDemande($message));
+        $message = $this->enregistrerMessage(
+            $request,
+            $demande,
+            $request->user() instanceof Agent ? 'agent' : 'gerant'
+        );
 
         return response()->json($message, 201);
+    }
+
+    /** Sert la note vocale d'un message — même portée que les autres actions. */
+    public function audioMessage(Request $request, DemandeTransaction $demande, DemandeMessage $message)
+    {
+        $this->autoriserAcces($request, $demande);
+
+        return $this->servirAudio($demande, $message);
     }
 
     /** Sert la preuve de paiement — authentifié, même portée que les autres actions. */

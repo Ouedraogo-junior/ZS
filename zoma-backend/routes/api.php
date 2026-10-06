@@ -35,6 +35,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/client/demandes/{demande}', [ClientDemandeController::class, 'show']);
     Route::get('/client/demandes/{demande}/preuve', [ClientDemandeController::class, 'preuve']);
     Route::get('/client/demandes/{demande}/id-capture', [ClientDemandeController::class, 'idCapture']);
+    Route::get('/client/demandes/{demande}/messages/{message}/audio', [ClientDemandeController::class, 'audioMessage']);
     Route::post('/client/demandes/{demande}/messages', [ClientDemandeController::class, 'storeMessage']);
 });
 
@@ -70,6 +71,7 @@ Route::middleware(['idle', 'auth:sanctum', 'role:agent'])->group(function () {
     Route::post('/agent/demandes/{demande}/messages', [AgentDemandeController::class, 'storeMessage']);
     Route::get('/agent/demandes/{demande}/preuve', [AgentDemandeController::class, 'preuve']);
     Route::get('/agent/demandes/{demande}/id-capture', [AgentDemandeController::class, 'idCapture']);
+    Route::get('/agent/demandes/{demande}/messages/{message}/audio', [AgentDemandeController::class, 'audioMessage']);
 });
 
 Route::middleware(['idle', 'auth:sanctum', 'role:gerant,admin'])->group(function () {
@@ -105,6 +107,7 @@ Route::middleware(['idle', 'auth:sanctum', 'role:gerant'])->group(function () {
     Route::post('/staff/demandes/{demande}/messages', [AgentDemandeController::class, 'storeMessage']);
     Route::get('/staff/demandes/{demande}/preuve', [AgentDemandeController::class, 'preuve']);
     Route::get('/staff/demandes/{demande}/id-capture', [AgentDemandeController::class, 'idCapture']);
+    Route::get('/staff/demandes/{demande}/messages/{message}/audio', [AgentDemandeController::class, 'audioMessage']);
 });
 
 Route::middleware(['idle', 'auth:sanctum', 'role:admin'])->group(function () {
@@ -126,6 +129,7 @@ Route::middleware(['idle', 'auth:sanctum', 'role:admin'])->group(function () {
     Route::post('/admin/demandes/{demande}/messages', [AgentDemandeController::class, 'storeMessage']);
     Route::get('/admin/demandes/{demande}/preuve', [AgentDemandeController::class, 'preuve']);
     Route::get('/admin/demandes/{demande}/id-capture', [AgentDemandeController::class, 'idCapture']);
+    Route::get('/admin/demandes/{demande}/messages/{message}/audio', [AgentDemandeController::class, 'audioMessage']);
 
     Route::get('/admin/agences', [ConfigController::class, 'agencesIndex']);
     Route::post('/admin/agences', [ConfigController::class, 'agencesStore']);

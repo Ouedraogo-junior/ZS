@@ -15,7 +15,23 @@ class DemandeMessage extends Model
         'auteur_type',
         'auteur_id',
         'message',
+        'audio_path',
+        'audio_duree',
     ];
+
+    /**
+     * Le chemin du fichier audio reste interne au serveur : l'appli ne
+     * reçoit qu'un indicateur "has_audio", puis demande le fichier via
+     * une route authentifiée dédiée (jamais d'URL directe).
+     */
+    protected $hidden = ['audio_path'];
+
+    protected $appends = ['has_audio'];
+
+    public function getHasAudioAttribute(): bool
+    {
+        return $this->audio_path !== null;
+    }
 
     public function demande(): BelongsTo
     {

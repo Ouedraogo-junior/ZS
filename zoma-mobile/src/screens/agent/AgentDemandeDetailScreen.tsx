@@ -3,7 +3,6 @@ import { useCallback, useLayoutEffect, useState } from 'react'
 import {
   View,
   Text,
-  TextInput,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -20,10 +19,13 @@ import { AlertTriangle, Copy, Check } from 'lucide-react-native'
 import * as Clipboard from 'expo-clipboard'
 import { colors } from '../../theme/colors'
 import { ProtectedImage } from '../../components/ProtectedImage'
+import { ComposeurMessage } from '../../components/ComposeurMessage'
+import { NoteVocale } from '../../components/NoteVocale'
 import {
   getAgentDemande,
   validerDemande,
   sendAgentDemandeMessage,
+  envoyerNoteVocale,
   fetchDemandeImageDataUri,
   getErrorMessage,
   type AgentDemande,
@@ -58,8 +60,6 @@ export function AgentDemandeDetailScreen({ route, navigation, base = '/agent' }:
   }, [retourVersHistorique, navigation])
   const [demande, setDemande] = useState<AgentDemande | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [texte, setTexte] = useState('')
-  const [envoi, setEnvoi] = useState(false)
   const [validation, setValidation] = useState(false)
   const [champCopie, setChampCopie] = useState<string | null>(null)
 
@@ -88,18 +88,17 @@ export function AgentDemandeDetailScreen({ route, navigation, base = '/agent' }:
     [demandeId, base]
   )
 
-  const envoyerMessage = async () => {
-    if (!texte.trim() || envoi) return
-    setEnvoi(true)
-    try {
-      const message = await sendAgentDemandeMessage(demandeId, texte.trim(), base)
-      setTexte('')
-      setDemande(prev => (prev ? { ...prev, messages: [...(prev.messages ?? []), message] } : prev))
-    } catch (err) {
-      setError(getErrorMessage(err))
-    } finally {
-      setEnvoi(false)
-    }
+  const ajouterMessage = (message: DemandeMessage) =>
+    setDemande(prev => (prev ? { ...prev, messages: [...(prev.messages ?? []), message] } : prev))
+
+  // Les deux fonctions laissent remonter l'erreur : ComposeurMessage la
+  // transmet à setError (via onErreur).
+  const envoyerTexte = async (texte: string) => {
+    ajouterMessage(await sendAgentDemandeMessage(demandeId, texte, base))
+  }
+
+  const envoyerAudio = async (uri: string, dureeSecondes: number) => {
+    ajouterMessage(await envoyerNoteVocale(base, demandeId, uri, dureeSecondes))
   }
 
   const confirmerValidation = () => {
@@ -260,7 +259,25 @@ export function AgentDemandeDetailScreen({ route, navigation, base = '/agent' }:
           return (
             <View key={message.id} style={[styles.bubbleRow, cotePersonnel ? styles.bubbleRowAgent : styles.bubbleRowClient]}>
               <View style={[styles.bubble, cotePersonnel ? styles.bubbleAgent : styles.bubbleClient]}>
-                <Text style={cotePersonnel ? styles.bubbleTextAgent : styles.bubbleTextClient}>{message.message}</Text>
+                {message.has_audio && (
+                  <NoteVocale
+                    base={base}
+                    demandeId={demandeId}
+                    messageId={message.id}
+                    dureeSecondes={message.audio_duree}
+                    surFondSombre={cotePersonnel}
+                  />
+                )}
+                {!!message.message && (
+                  <Text
+                    style={[
+                      cotePersonnel ? styles.bubbleTextAgent : styles.bubbleTextClient,
+                      message.has_audio && { marginTop: 8 },
+                    ]}
+                  >
+                    {message.message}
+                  </Text>
+                )}
               </View>
             </View>
           )
@@ -268,19 +285,11 @@ export function AgentDemandeDetailScreen({ route, navigation, base = '/agent' }:
       </ScrollView>
 
       {discussionOuverte ? (
-        <View style={styles.inputRow}>
-          <TextInput
-            style={styles.input}
-            value={texte}
-            onChangeText={setTexte}
-            placeholder="Écrire un message..."
-            placeholderTextColor={colors.muted}
-            multiline
-          />
-          <Pressable style={styles.sendButton} onPress={envoyerMessage} disabled={envoi || !texte.trim()}>
-            <Text style={styles.sendButtonText}>{envoi ? '...' : 'Envoyer'}</Text>
-          </Pressable>
-        </View>
+        <ComposeurMessage
+          onEnvoyerTexte={envoyerTexte}
+          onEnvoyerAudio={envoyerAudio}
+          onErreur={setError}
+        />
       ) : (
         <View style={styles.inputFerme}>
           <Text style={styles.inputFermeText}>
@@ -335,29 +344,6 @@ const styles = StyleSheet.create({
   bubbleClient: { backgroundColor: colors.white, borderBottomLeftRadius: 4 },
   bubbleTextAgent: { color: colors.white, fontSize: 14 },
   bubbleTextClient: { color: colors.text, fontSize: 14 },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 8,
-    padding: 12,
-    backgroundColor: colors.white,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  input: {
-    flex: 1,
-    minHeight: 44,
-    maxHeight: 100,
-    borderWidth: 2,
-    borderColor: colors.border,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 15,
-    color: colors.text,
-  },
-  sendButton: { backgroundColor: colors.primary, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12 },
-  sendButtonText: { color: colors.white, fontWeight: '700', fontSize: 14 },
   inputFerme: {
     padding: 16,
     backgroundColor: colors.white,

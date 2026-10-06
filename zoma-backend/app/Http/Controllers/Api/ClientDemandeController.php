@@ -3,9 +3,10 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Events\NouveauMessageDemande;
 use App\Events\NouvelleDemandeSoumise;
+use App\Http\Controllers\Api\Concerns\GereMessagesDemande;
 use App\Http\Controllers\Controller;
+use App\Models\DemandeMessage;
 use App\Models\DemandeTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -18,6 +19,8 @@ use Illuminate\Validation\Rule;
  */
 class ClientDemandeController extends Controller
 {
+    use GereMessagesDemande;
+
     public function store(Request $request)
     {
         $client = $request->user();
@@ -98,19 +101,17 @@ class ClientDemandeController extends Controller
     {
         $this->autoriserAcces($request, $demande);
 
-        $data = $request->validate([
-            'message' => ['required', 'string', 'max:1000'],
-        ]);
-
-        $message = $demande->messages()->create([
-            'auteur_type' => 'client',
-            'auteur_id' => $request->user()->id,
-            'message' => $data['message'],
-        ]);
-
-        event(new NouveauMessageDemande($message));
+        $message = $this->enregistrerMessage($request, $demande, 'client');
 
         return response()->json($message, 201);
+    }
+
+    /** Sert la note vocale d'un message de cette demande — authentifié. */
+    public function audioMessage(Request $request, DemandeTransaction $demande, DemandeMessage $message)
+    {
+        $this->autoriserAcces($request, $demande);
+
+        return $this->servirAudio($demande, $message);
     }
 
     /** Sert la preuve de paiement — authentifié, jamais une URL publique. */
