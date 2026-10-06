@@ -24,7 +24,10 @@ export interface Demande {
   reseau_mobile_money_id: number
   plateforme_paris_id: number
   montant: number
-  id_bookmaker: string
+  /** ID tapé par le client — absent s'il a joint une capture à la place. */
+  id_bookmaker: string | null
+  /** Présent si le client a joint une capture de son compte au lieu de taper l'ID. */
+  id_bookmaker_capture: string | null
   telephone_mobile_money: string | null
   preuve_paiement: string | null
   statut: 'en_attente' | 'validee'
@@ -44,10 +47,27 @@ export interface NewDemandeInput {
   reseau_mobile_money_id: number
   plateforme_paris_id: number
   montant: number
-  id_bookmaker: string
+  /** ID tapé — au moins l'un de id_bookmaker / idCaptureUri est exigé. */
+  id_bookmaker?: string
+  /** URI locale d'une capture de l'ID bookmaker, pour un client qui ne sait pas écrire. */
+  idCaptureUri?: string
   telephone_mobile_money?: string
   /** URI locale de l'image choisie (expo-image-picker) — dépôt uniquement. */
   preuveUri?: string
+}
+
+/**
+ * Ajoute un fichier image à un FormData. React Native attend la forme
+ * { uri, name, type } (différente de l'objet File du web), d'où le
+ * @ts-expect-error — nécessaire parce que le type DOM de FormData ne
+ * connaît pas cette forme.
+ */
+function ajouterImage(form: FormData, champ: string, uri: string, nomParDefaut: string) {
+  const nom = uri.split('/').pop() ?? nomParDefaut
+  const ext = /\.(\w+)$/.exec(nom)?.[1]?.toLowerCase() ?? 'jpg'
+  const type = `image/${ext === 'jpg' ? 'jpeg' : ext}`
+  // @ts-expect-error forme RN spécifique pour un fichier dans FormData
+  form.append(champ, { uri, name: nom, type })
 }
 
 export async function submitDemande(input: NewDemandeInput): Promise<Demande> {
@@ -57,19 +77,21 @@ export async function submitDemande(input: NewDemandeInput): Promise<Demande> {
   form.append('reseau_mobile_money_id', String(input.reseau_mobile_money_id))
   form.append('plateforme_paris_id', String(input.plateforme_paris_id))
   form.append('montant', String(input.montant))
-  form.append('id_bookmaker', input.id_bookmaker)
+
+  if (input.id_bookmaker) {
+    form.append('id_bookmaker', input.id_bookmaker)
+  }
+
+  if (input.idCaptureUri) {
+    ajouterImage(form, 'id_bookmaker_capture', input.idCaptureUri, 'id.jpg')
+  }
 
   if (input.telephone_mobile_money) {
     form.append('telephone_mobile_money', input.telephone_mobile_money)
   }
 
   if (input.preuveUri) {
-    const filename = input.preuveUri.split('/').pop() ?? 'preuve.jpg'
-    const ext = /\.(\w+)$/.exec(filename)?.[1] ?? 'jpg'
-    // Forme attendue par FormData en React Native (uri/name/type),
-    // différente de l'objet File du web — @ts-expect-error nécessaire.
-    // @ts-expect-error forme RN spécifique pour un fichier dans FormData
-    form.append('preuve', { uri: input.preuveUri, name: filename, type: `image/${ext}` })
+    ajouterImage(form, 'preuve', input.preuveUri, 'preuve.jpg')
   }
 
   return apiFetch<Demande>('/client/demandes', { method: 'POST', body: form })

@@ -136,6 +136,18 @@ class AgentDemandeController extends Controller
         return Storage::response($demande->preuve_paiement);
     }
 
+    /** Sert la capture de l'ID bookmaker — même portée que la preuve de paiement. */
+    public function idCapture(Request $request, DemandeTransaction $demande)
+    {
+        $this->autoriserAcces($request, $demande);
+
+        if (! $demande->id_bookmaker_capture || ! Storage::exists($demande->id_bookmaker_capture)) {
+            abort(404);
+        }
+
+        return Storage::response($demande->id_bookmaker_capture);
+    }
+
     private function autoriserAcces(Request $request, DemandeTransaction $demande): void
     {
         $user = $request->user();

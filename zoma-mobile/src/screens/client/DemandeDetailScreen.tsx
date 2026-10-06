@@ -88,7 +88,8 @@ export function DemandeDetailScreen({ route }: Props) {
         </View>
         <Text style={styles.summaryLine}>{demande.montant.toLocaleString('fr-FR')} F CFA</Text>
         <Text style={styles.summaryMeta}>
-          {demande.agence.nom} · {demande.reseau_mobile_money.nom} · ID {demande.id_bookmaker}
+          {demande.agence.nom} · {demande.reseau_mobile_money.nom} ·{' '}
+          {demande.id_bookmaker ? `ID ${demande.id_bookmaker}` : 'ID envoyé en photo'}
         </Text>
       </View>
 

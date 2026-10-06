@@ -18,6 +18,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { MessageCircle } from 'lucide-react-native'
 import { colors } from '../../theme/colors'
+import { versNumeroWhatsApp } from '../../lib/phone'
 import {
   getReclamation,
   prendreEnCharge,
@@ -57,7 +58,7 @@ export function ReclamationDetailScreen({ route }: Props) {
 
   const ouvrirWhatsApp = () => {
     if (!reclamation) return
-    const numero = reclamation.contact_client.replace(/\D/g, '')
+    const numero = versNumeroWhatsApp(reclamation.contact_client)
     const texteMessage = `Bonjour ${reclamation.nom_client}, je vous contacte au sujet de votre réclamation.`
     Linking.openURL(`https://wa.me/${numero}?text=${encodeURIComponent(texteMessage)}`)
   }

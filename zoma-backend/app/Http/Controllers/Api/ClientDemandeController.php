@@ -28,7 +28,10 @@ class ClientDemandeController extends Controller
             'reseau_mobile_money_id' => ['required', 'integer', Rule::exists('reseaux_mobile_money', 'id')->where('statut', 'actif')],
             'plateforme_paris_id' => ['required', 'integer', Rule::exists('plateformes_paris', 'id')->where('statut', 'actif')],
             'montant' => ['required', 'integer', 'min:1'],
-            'id_bookmaker' => ['required', 'string', 'max:100'],
+            // Au moins l'un des deux : l'ID tapé, ou une capture d'écran de
+            // son compte (pour un client qui ne sait pas écrire).
+            'id_bookmaker' => ['nullable', 'required_without:id_bookmaker_capture', 'string', 'max:100'],
+            'id_bookmaker_capture' => ['nullable', 'required_without:id_bookmaker', 'file', 'image', 'max:5120'],
             'telephone_mobile_money' => ['required_if:type,retrait', 'nullable', 'string', 'max:20'],
             'preuve' => ['required_if:type,depot', 'nullable', 'file', 'image', 'max:5120'], // 5 Mo max
         ]);
@@ -43,6 +46,13 @@ class ClientDemandeController extends Controller
             $cheminPreuve = $request->file('preuve')->store('preuves');
         }
 
+        // Même principe que la preuve : stockage privé, servi uniquement
+        // par une route authentifiée (idCapture()).
+        $cheminIdCapture = null;
+        if ($request->hasFile('id_bookmaker_capture')) {
+            $cheminIdCapture = $request->file('id_bookmaker_capture')->store('id_captures');
+        }
+
         $demande = DemandeTransaction::create([
             'client_id' => $client->id,
             'agence_id' => $data['agence_id'],
@@ -50,7 +60,8 @@ class ClientDemandeController extends Controller
             'reseau_mobile_money_id' => $data['reseau_mobile_money_id'],
             'plateforme_paris_id' => $data['plateforme_paris_id'],
             'montant' => $data['montant'],
-            'id_bookmaker' => $data['id_bookmaker'],
+            'id_bookmaker' => $data['id_bookmaker'] ?? null,
+            'id_bookmaker_capture' => $cheminIdCapture,
             'telephone_mobile_money' => $data['telephone_mobile_money'] ?? null,
             'preuve_paiement' => $cheminPreuve,
             'statut' => 'en_attente',
@@ -112,6 +123,18 @@ class ClientDemandeController extends Controller
         }
 
         return Storage::response($demande->preuve_paiement);
+    }
+
+    /** Sert la capture de l'ID bookmaker — authentifié, jamais une URL publique. */
+    public function idCapture(Request $request, DemandeTransaction $demande)
+    {
+        $this->autoriserAcces($request, $demande);
+
+        if (! $demande->id_bookmaker_capture || ! Storage::exists($demande->id_bookmaker_capture)) {
+            abort(404);
+        }
+
+        return Storage::response($demande->id_bookmaker_capture);
     }
 
     private function autoriserAcces(Request $request, DemandeTransaction $demande): void

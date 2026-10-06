@@ -48,23 +48,30 @@ export function sendAgentDemandeMessage(
   })
 }
 
+/** Les deux images qu'un client peut joindre à une demande, servies par des routes authentifiées. */
+export type DemandeImageKind = 'preuve' | 'id-capture'
+
 /**
- * La preuve de paiement est servie par une route authentifiée (jamais
- * une URL publique). Les en-têtes personnalisés passés directement au
- * composant Image sont peu fiables selon les plateformes (surtout iOS) —
- * on télécharge donc l'image nous-mêmes via une requête authentifiée
- * classique, puis on la convertit en URI de données (base64), que
- * n'importe quel composant Image affiche sans aucune configuration
- * particulière.
+ * Les images d'une demande (preuve de paiement, capture de l'ID) sont
+ * servies par des routes authentifiées (jamais une URL publique). Les
+ * en-têtes personnalisés passés directement au composant Image sont peu
+ * fiables selon les plateformes (surtout iOS) — on télécharge donc
+ * l'image nous-mêmes via une requête authentifiée classique, puis on la
+ * convertit en URI de données (base64), que n'importe quel composant
+ * Image affiche sans configuration particulière.
  */
-export async function fetchPreuveImageDataUri(demandeId: number, base: DemandesBase = '/agent'): Promise<string> {
+export async function fetchDemandeImageDataUri(
+  demandeId: number,
+  kind: DemandeImageKind,
+  base: DemandesBase = '/agent'
+): Promise<string> {
   const token = await getToken()
-  const response = await fetch(`${API_BASE_URL}${base}/demandes/${demandeId}/preuve`, {
+  const response = await fetch(`${API_BASE_URL}${base}/demandes/${demandeId}/${kind}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   })
 
   if (!response.ok) {
-    throw new Error("Impossible de charger la preuve de paiement.")
+    throw new Error("Impossible de charger l'image.")
   }
 
   const blob = await response.blob()
@@ -75,4 +82,9 @@ export async function fetchPreuveImageDataUri(demandeId: number, base: DemandesB
     reader.onerror = reject
     reader.readAsDataURL(blob)
   })
+}
+
+/** Conservé pour les appels existants — voir fetchDemandeImageDataUri. */
+export function fetchPreuveImageDataUri(demandeId: number, base: DemandesBase = '/agent'): Promise<string> {
+  return fetchDemandeImageDataUri(demandeId, 'preuve', base)
 }

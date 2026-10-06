@@ -13,10 +13,11 @@ import {
   Platform,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { CheckCircle2 } from 'lucide-react-native'
+import { CheckCircle2, Camera } from 'lucide-react-native'
 import * as ImagePicker from 'expo-image-picker'
 import { colors } from '../../theme/colors'
 import { SelectField } from '../../components/SelectField'
+import { compresserImage } from '../../lib/image'
 import {
   getAgences,
   getReseauxMobileMoney,
@@ -39,6 +40,7 @@ export function NouvelleDemandeScreen() {
   const [plateformeId, setPlateformeId] = useState<number | null>(null)
   const [montant, setMontant] = useState('')
   const [idBookmaker, setIdBookmaker] = useState('')
+  const [idCaptureUri, setIdCaptureUri] = useState<string | null>(null)
   const [telephoneMM, setTelephoneMM] = useState('')
   const [preuveUri, setPreuveUri] = useState<string | null>(null)
 
@@ -57,19 +59,33 @@ export function NouvelleDemandeScreen() {
       .finally(() => setLoadingRef(false))
   }, [])
 
-  const pickImage = async () => {
+  // Ouvre la galerie et renvoie l'image choisie déjà compressée (ou null).
+  // Pas de compression dans le sélecteur lui-même (quality: 1) : une
+  // seule passe, via compresserImage, sinon l'image serait recompressée
+  // deux fois et perdrait en netteté pour rien.
+  const choisirImage = async (): Promise<string | null> => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
     if (!permission.granted) {
       setError("Autorisation d'accès aux photos refusée.")
-      return
+      return null
     }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.7,
+      quality: 1,
     })
-    if (!result.canceled && result.assets[0]) {
-      setPreuveUri(result.assets[0].uri)
-    }
+    if (result.canceled || !result.assets[0]) return null
+    const asset = result.assets[0]
+    return compresserImage(asset.uri, asset.width)
+  }
+
+  const choisirPreuve = async () => {
+    const uri = await choisirImage()
+    if (uri) setPreuveUri(uri)
+  }
+
+  const choisirIdCapture = async () => {
+    const uri = await choisirImage()
+    if (uri) setIdCaptureUri(uri)
   }
 
   const montantNombre = parseInt(montant, 10)
@@ -78,7 +94,7 @@ export function NouvelleDemandeScreen() {
     reseauId !== null &&
     plateformeId !== null &&
     montantNombre > 0 &&
-    idBookmaker.trim().length > 0 &&
+    (idBookmaker.trim().length > 0 || idCaptureUri !== null) &&
     (type === 'depot' ? preuveUri !== null : telephoneMM.trim().length > 0) &&
     !submitting
 
@@ -88,6 +104,7 @@ export function NouvelleDemandeScreen() {
     setPlateformeId(null)
     setMontant('')
     setIdBookmaker('')
+    setIdCaptureUri(null)
     setTelephoneMM('')
     setPreuveUri(null)
   }
@@ -103,7 +120,8 @@ export function NouvelleDemandeScreen() {
         reseau_mobile_money_id: reseauId,
         plateforme_paris_id: plateformeId,
         montant: montantNombre,
-        id_bookmaker: idBookmaker.trim(),
+        id_bookmaker: idBookmaker.trim() || undefined,
+        idCaptureUri: idCaptureUri ?? undefined,
         telephone_mobile_money: type === 'retrait' ? telephoneMM.trim() : undefined,
         preuveUri: type === 'depot' ? (preuveUri ?? undefined) : undefined,
       })
@@ -214,6 +232,24 @@ export function NouvelleDemandeScreen() {
         placeholder="Identifiant du compte"
         placeholderTextColor={colors.muted}
       />
+      {idCaptureUri ? (
+        <View style={styles.idCaptureBox}>
+          <Image source={{ uri: idCaptureUri }} style={styles.idCapturePreview} resizeMode="contain" />
+          <View style={styles.idCaptureActions}>
+            <Pressable onPress={choisirIdCapture}>
+              <Text style={styles.actionLink}>Changer la photo</Text>
+            </Pressable>
+            <Pressable onPress={() => setIdCaptureUri(null)}>
+              <Text style={styles.actionLinkDanger}>Retirer</Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : (
+        <Pressable style={styles.uploadButton} onPress={choisirIdCapture}>
+          <Camera size={18} color={colors.secondary} />
+          <Text style={styles.uploadButtonText}>Ou joindre une photo de mon compte</Text>
+        </Pressable>
+      )}
 
       {type === 'retrait' && (
         <>
@@ -233,12 +269,12 @@ export function NouvelleDemandeScreen() {
         <>
           <Text style={styles.label}>Preuve de paiement</Text>
           {preuveUri ? (
-            <Pressable onPress={pickImage}>
+            <Pressable onPress={choisirPreuve}>
               <Image source={{ uri: preuveUri }} style={styles.preview} />
               <Text style={styles.changePhoto}>Changer la photo</Text>
             </Pressable>
           ) : (
-            <Pressable style={styles.uploadButton} onPress={pickImage}>
+            <Pressable style={styles.uploadButton} onPress={choisirPreuve}>
               <Text style={styles.uploadButtonText}>Ajouter une capture d'écran</Text>
             </Pressable>
           )}
@@ -306,11 +342,18 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.border,
     borderStyle: 'dashed',
+    flexDirection: 'row',
+    gap: 8,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 18,
   },
   uploadButtonText: { color: colors.secondary, fontWeight: '600' },
+  idCaptureBox: { marginBottom: 18 },
+  idCapturePreview: { width: '100%', height: 140, borderRadius: 12, backgroundColor: colors.background },
+  idCaptureActions: { flexDirection: 'row', justifyContent: 'center', gap: 24, marginTop: 8 },
+  actionLink: { color: colors.secondary, fontWeight: '600' },
+  actionLinkDanger: { color: colors.danger, fontWeight: '600' },
   preview: { width: '100%', height: 180, borderRadius: 12, marginBottom: 6 },
   changePhoto: { color: colors.secondary, fontWeight: '600', textAlign: 'center', marginBottom: 18 },
   button: { backgroundColor: colors.primary, borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginTop: 8 },

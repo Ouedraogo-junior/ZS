@@ -22,6 +22,7 @@ class DemandeTransaction extends Model
         'plateforme_paris_id',
         'montant',
         'id_bookmaker',
+        'id_bookmaker_capture',
         'telephone_mobile_money',
         'preuve_paiement',
         'statut',
