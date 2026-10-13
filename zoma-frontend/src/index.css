@@ -62,8 +62,20 @@
    aussi qu'un rebond de défilement mobile (iOS notamment), en bas ou en
    haut de page, ne révèle un blanc qui tranche avec le reste de l'appli. */
 html, body {
-  overflow-x: hidden;
   background-color: #F7F9FC;
+}
+
+/* "hidden" sur <html> seul est reporté sur la fenêtre elle-même : il ne
+   crée pas de conteneur de défilement. Sur <body>, en revanche, "hidden"
+   en créerait un, et tout élément "sticky" (la barre latérale du
+   backoffice) s'y accrocherait au lieu de la fenêtre : il partirait avec
+   la page au lieu de rester en place. "clip" coupe le débordement sans
+   créer de conteneur de défilement. */
+html {
+  overflow-x: hidden;
+}
+body {
+  overflow-x: clip;
 }
 
 /* Animations du hero de la page publique */

@@ -5,6 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFocusEffect } from '@react-navigation/native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { colors } from '../../theme/colors'
+import { useAuth } from '../../hooks/useAuth'
+import { useTempsReel } from '../../hooks/useTempsReel'
 import { getAgentDemandes, getErrorMessage, type AgentDemande, type DemandesBase } from '../../lib/api'
 import type { AgentDemandesStackParamList } from '../../navigation/AgentDemandesTypes'
 
@@ -38,6 +40,16 @@ export function AgentDemandesListScreen({ navigation, base = '/agent' }: Props) 
   }, [filtre, base])
 
   useFocusEffect(load)
+
+  // Une demande arrive, ou un collègue en valide une : la liste se met à
+  // jour seule. (L'admin, sans agence propre, n'écoute rien pour l'instant.)
+  const { state } = useAuth()
+  const agenceId = state.status === 'staff' ? state.profile.agence_id : null
+  useTempsReel(
+    agenceId ? `agence.${agenceId}.demandes` : null,
+    { 'nouvelle.demande': () => load(), 'demande.validee': () => load() },
+    load
+  )
 
   const onRefresh = async () => {
     setRefreshing(true)

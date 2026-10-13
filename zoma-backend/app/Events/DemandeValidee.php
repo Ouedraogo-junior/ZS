@@ -6,7 +6,7 @@ namespace App\Events;
 use App\Models\DemandeTransaction;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
@@ -23,7 +23,7 @@ use Illuminate\Queue\SerializesModels;
  * base de données, dans DemandeTransaction::valider() — ceci n'est que
  * du confort d'affichage, pas une garantie de sécurité).
  */
-class DemandeValidee implements ShouldBroadcast
+class DemandeValidee implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 

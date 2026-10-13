@@ -18,6 +18,9 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { AlertTriangle, Copy, Check } from 'lucide-react-native'
 import * as Clipboard from 'expo-clipboard'
 import { colors } from '../../theme/colors'
+import { useAuth } from '../../hooks/useAuth'
+import { useTempsReel } from '../../hooks/useTempsReel'
+import { concerneDemande } from '../../lib/realtime'
 import { ProtectedImage } from '../../components/ProtectedImage'
 import { ComposeurMessage } from '../../components/ComposeurMessage'
 import { NoteVocale } from '../../components/NoteVocale'
@@ -76,6 +79,16 @@ export function AgentDemandeDetailScreen({ route, navigation, base = '/agent' }:
   }, [demandeId, base])
 
   useFocusEffect(load)
+
+  // Nouveau message du client, ou demande validée par un collègue pendant
+  // qu'on la regarde : l'écran se met à jour sans rechargement manuel.
+  const { state } = useAuth()
+  const agenceId = state.status === 'staff' ? state.profile.agence_id : null
+  useTempsReel(`demande.${demandeId}`, { 'nouveau.message': () => load() }, load)
+  useTempsReel(
+    agenceId ? `agence.${agenceId}.demandes` : null,
+    { 'demande.validee': donnees => concerneDemande(donnees, demandeId) && load() }
+  )
 
   // Chargeurs stables (useCallback) : ProtectedImage relance le
   // téléchargement si leur référence change.

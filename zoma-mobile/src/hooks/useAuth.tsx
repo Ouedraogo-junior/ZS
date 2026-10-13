@@ -17,6 +17,7 @@ import {
   type StaffRole,
 } from '../lib/api'
 import { getSessionType, clearSession } from '../lib/storage'
+import { fermerTempsReel } from '../lib/realtime'
 
 type AuthState =
   | { status: 'loading' }
@@ -46,13 +47,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // localement dans tous les cas.
     }
     await clearSession()
+    fermerTempsReel()
     setState({ status: 'guest' })
   }, [])
 
   // Restauration de la session au démarrage de l'appli, à partir du
   // token stocké sur l'appareil.
   useEffect(() => {
-    setUnauthorizedHandler(() => setState({ status: 'guest' }))
+    setUnauthorizedHandler(() => {
+      fermerTempsReel()
+      setState({ status: 'guest' })
+    })
 
     ;(async () => {
       const type = await getSessionType()

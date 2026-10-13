@@ -5,6 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFocusEffect } from '@react-navigation/native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { colors } from '../../theme/colors'
+import { useAuth } from '../../hooks/useAuth'
+import { useTempsReel } from '../../hooks/useTempsReel'
 import { getDemandes, getErrorMessage, type Demande } from '../../lib/api'
 import type { MesDemandesStackParamList } from '../../navigation/ClientNavigator'
 
@@ -32,9 +34,13 @@ export function MesDemandesScreen({ navigation }: Props) {
       .catch(err => setError(getErrorMessage(err)))
   }, [])
 
-  // Recharge à chaque fois que l'onglet redevient actif — pas besoin
-  // d'attendre le websocket pour voir une demande fraîchement validée.
+  // Recharge à chaque fois que l'onglet redevient actif...
   useFocusEffect(load)
+
+  // ...et dès qu'un agent valide l'une de mes demandes, sans rien faire.
+  const { state } = useAuth()
+  const clientId = state.status === 'client' ? state.client.id : null
+  useTempsReel(clientId ? `client.${clientId}.demandes` : null, { 'demande.validee': () => load() }, load)
 
   const onRefresh = async () => {
     setRefreshing(true)

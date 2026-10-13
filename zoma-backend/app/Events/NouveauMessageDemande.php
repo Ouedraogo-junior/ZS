@@ -6,7 +6,7 @@ namespace App\Events;
 use App\Models\DemandeMessage;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
@@ -14,7 +14,7 @@ use Illuminate\Queue\SerializesModels;
  * Diffusé à chaque message ajouté (client ou agent) sur le fil de
  * secours d'une demande — les deux côtés le voient apparaître en direct.
  */
-class NouveauMessageDemande implements ShouldBroadcast
+class NouveauMessageDemande implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 

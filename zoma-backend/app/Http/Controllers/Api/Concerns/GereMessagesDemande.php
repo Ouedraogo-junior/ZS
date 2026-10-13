@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api\Concerns;
 use App\Events\NouveauMessageDemande;
 use App\Models\DemandeMessage;
 use App\Models\DemandeTransaction;
+use App\Support\Diffusion;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -76,7 +77,7 @@ trait GereMessagesDemande
             'audio_duree' => $dureeAudio,
         ]);
 
-        event(new NouveauMessageDemande($message));
+        Diffusion::emettre(new NouveauMessageDemande($message));
 
         return $message;
     }

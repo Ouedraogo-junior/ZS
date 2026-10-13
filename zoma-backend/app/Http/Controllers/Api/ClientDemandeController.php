@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\Concerns\GereMessagesDemande;
 use App\Http\Controllers\Controller;
 use App\Models\DemandeMessage;
 use App\Models\DemandeTransaction;
+use App\Support\Diffusion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -72,7 +73,7 @@ class ClientDemandeController extends Controller
 
         $demande->load(['agence:id,nom', 'reseauMobileMoney:id,nom', 'plateformeParis:id,nom']);
 
-        event(new NouvelleDemandeSoumise($demande));
+        Diffusion::emettre(new NouvelleDemandeSoumise($demande));
 
         return response()->json($demande, 201);
     }

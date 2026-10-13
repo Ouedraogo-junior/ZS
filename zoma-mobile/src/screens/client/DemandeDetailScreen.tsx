@@ -14,6 +14,9 @@ import { useHeaderHeight } from '@react-navigation/elements'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors } from '../../theme/colors'
+import { useAuth } from '../../hooks/useAuth'
+import { useTempsReel } from '../../hooks/useTempsReel'
+import { concerneDemande } from '../../lib/realtime'
 import { ComposeurMessage } from '../../components/ComposeurMessage'
 import { NoteVocale } from '../../components/NoteVocale'
 import {
@@ -41,6 +44,15 @@ export function DemandeDetailScreen({ route }: Props) {
   }, [demandeId])
 
   useFocusEffect(load)
+
+  // Réponse de l'agent, ou validation de la demande : l'écran se met à
+  // jour sans que le client ait à le rouvrir.
+  const { state } = useAuth()
+  const clientId = state.status === 'client' ? state.client.id : null
+  useTempsReel(`demande.${demandeId}`, { 'nouveau.message': () => load() }, load)
+  useTempsReel(clientId ? `client.${clientId}.demandes` : null, {
+    'demande.validee': donnees => concerneDemande(donnees, demandeId) && load(),
+  })
 
   const ajouterMessage = (message: DemandeMessage) =>
     setDemande(prev => (prev ? { ...prev, messages: [...(prev.messages ?? []), message] } : prev))
