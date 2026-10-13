@@ -7,7 +7,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Agence;
 use App\Models\PlateformeParis;
 use App\Models\ReseauMobileMoney;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 /**
@@ -64,6 +66,16 @@ class ConfigController extends Controller
         return response()->json($agence);
     }
 
+    public function agencesPhoto(Request $request, Agence $agence)
+    {
+        return response()->json($this->enregistrerImage($request, $agence, 'photo', 'agences', 1024));
+    }
+
+    public function agencesPhotoDestroy(Agence $agence)
+    {
+        return response()->json($this->supprimerImage($agence, 'photo'));
+    }
+
     // ── Réseaux mobile money ─────────────────────────────────────────
 
     public function reseauxIndex()
@@ -93,6 +105,16 @@ class ConfigController extends Controller
         return response()->json($reseau);
     }
 
+    public function reseauxLogo(Request $request, ReseauMobileMoney $reseau)
+    {
+        return response()->json($this->enregistrerImage($request, $reseau, 'logo', 'logos', 512));
+    }
+
+    public function reseauxLogoDestroy(ReseauMobileMoney $reseau)
+    {
+        return response()->json($this->supprimerImage($reseau, 'logo'));
+    }
+
     // ── Plateformes de paris ─────────────────────────────────────────
 
     public function plateformesIndex()
@@ -120,5 +142,58 @@ class ConfigController extends Controller
         $plateforme->update($data);
 
         return response()->json($plateforme);
+    }
+
+    public function plateformesLogo(Request $request, PlateformeParis $plateforme)
+    {
+        return response()->json($this->enregistrerImage($request, $plateforme, 'logo', 'logos', 512));
+    }
+
+    public function plateformesLogoDestroy(PlateformeParis $plateforme)
+    {
+        return response()->json($this->supprimerImage($plateforme, 'logo'));
+    }
+
+    // ── Images (logos, photos d'agence) ──────────────────────────────
+
+    /**
+     * Enregistre l'image envoyée dans le champ $champ du modèle, sur le
+     * disque "public" (ces images ne sont pas sensibles et doivent être
+     * servies directement par Nginx via public/storage — voir
+     * "php artisan storage:link"). L'ancien fichier est supprimé, pour
+     * ne pas laisser d'images orphelines s'accumuler sur le serveur.
+     *
+     * Le SVG est refusé exprès (il peut contenir du script) ; le site
+     * web redimensionne et convertit en PNG/JPG avant l'envoi, donc un
+     * logo SVG choisi par l'admin arrive quand même ici en PNG.
+     */
+    private function enregistrerImage(Request $request, Model $modele, string $champ, string $dossier, int $maxKo): Model
+    {
+        $request->validate([
+            $champ => ['required', 'file', 'mimes:png,jpg,jpeg,webp', 'max:'.$maxKo],
+        ]);
+
+        $ancienChemin = $modele->getRawOriginal($champ);
+        $chemin = $request->file($champ)->store($dossier, 'public');
+
+        $modele->update([$champ => $chemin]);
+
+        if ($ancienChemin) {
+            Storage::disk('public')->delete($ancienChemin);
+        }
+
+        return $modele->fresh();
+    }
+
+    private function supprimerImage(Model $modele, string $champ): Model
+    {
+        $chemin = $modele->getRawOriginal($champ);
+
+        if ($chemin) {
+            Storage::disk('public')->delete($chemin);
+            $modele->update([$champ => null]);
+        }
+
+        return $modele->fresh();
     }
 }

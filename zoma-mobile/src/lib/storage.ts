@@ -30,3 +30,21 @@ export async function clearSession(): Promise<void> {
   await SecureStore.deleteItemAsync(TOKEN_KEY)
   await SecureStore.deleteItemAsync(TYPE_KEY)
 }
+
+// ── Dernière agence utilisée ──────────────────────────────────────────────
+//
+// Pas une donnée sensible, juste une pré-sélection : après sa première
+// demande, le client n'a plus à choisir son agence. Volontairement NON
+// effacée par clearSession() — c'est une préférence de l'appareil, pas
+// de la session.
+const LAST_AGENCE_KEY = 'zoma_last_agence_id'
+
+export async function getLastAgenceId(): Promise<number | null> {
+  const value = await SecureStore.getItemAsync(LAST_AGENCE_KEY)
+  const id = value ? parseInt(value, 10) : NaN
+  return Number.isNaN(id) ? null : id
+}
+
+export async function setLastAgenceId(id: number): Promise<void> {
+  await SecureStore.setItemAsync(LAST_AGENCE_KEY, String(id))
+}

@@ -61,12 +61,17 @@ function fallbackMessage(status: number): string {
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken()
 
+  // Pour un envoi de fichier (FormData), le navigateur doit fixer lui-même
+  // le Content-Type : il y ajoute la "boundary" qui délimite les parties.
+  // Forcer 'application/json' ici casserait l'envoi.
+  const estFormData = typeof FormData !== 'undefined' && options.body instanceof FormData
+
   let response: Response
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
       ...options,
       headers: {
-        'Content-Type': 'application/json',
+        ...(estFormData ? {} : { 'Content-Type': 'application/json' }),
         Accept: 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...options.headers,

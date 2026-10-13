@@ -19,14 +19,14 @@ class ReferenceController extends Controller
     public function reseauxMobileMoney()
     {
         return response()->json(
-            ReseauMobileMoney::actifs()->select('id', 'nom')->orderBy('nom')->get()
+            ReseauMobileMoney::actifs()->select('id', 'nom', 'logo')->orderBy('nom')->get()
         );
     }
 
     public function plateformesParis()
     {
         return response()->json(
-            PlateformeParis::actifs()->select('id', 'nom')->orderBy('nom')->get()
+            PlateformeParis::actifs()->select('id', 'nom', 'logo')->orderBy('nom')->get()
         );
     }
 
@@ -36,7 +36,7 @@ class ReferenceController extends Controller
     {
         return response()->json(
             Agence::where('statut', 'active')
-                ->select('id', 'nom', 'ville', 'adresse', 'telephone')
+                ->select('id', 'nom', 'ville', 'adresse', 'telephone', 'photo')
                 ->orderBy('nom')
                 ->get()
         );

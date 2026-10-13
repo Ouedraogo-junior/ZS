@@ -15,8 +15,22 @@ class Agence extends Model
         'adresse',
         'ville',
         'telephone',
+        'photo',
         'statut',
     ];
+
+    /**
+     * Le chemin du fichier reste interne au serveur : l'appli reçoit
+     * "photo_url", l'URL publique de la photo de l'agence (ou null).
+     */
+    protected $hidden = ['photo'];
+
+    protected $appends = ['photo_url'];
+
+    public function getPhotoUrlAttribute(): ?string
+    {
+        return $this->photo ? asset('storage/'.$this->photo) : null;
+    }
 
     /**
      * Les agents (guichet) rattachés à cette agence.

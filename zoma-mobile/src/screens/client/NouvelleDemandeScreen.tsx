@@ -16,8 +16,10 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { CheckCircle2, Camera } from 'lucide-react-native'
 import * as ImagePicker from 'expo-image-picker'
 import { colors } from '../../theme/colors'
-import { SelectField } from '../../components/SelectField'
+import { GrilleChoix } from '../../components/GrilleChoix'
+import { ChoixAgence } from '../../components/ChoixAgence'
 import { compresserImage } from '../../lib/image'
+import { getLastAgenceId, setLastAgenceId } from '../../lib/storage'
 import {
   getAgences,
   getReseauxMobileMoney,
@@ -49,11 +51,26 @@ export function NouvelleDemandeScreen() {
   const [success, setSuccess] = useState(false)
 
   useEffect(() => {
-    Promise.all([getAgences(), getReseauxMobileMoney(), getPlateformesParis()])
-      .then(([a, r, p]) => {
+    Promise.all([
+      getAgences(),
+      getReseauxMobileMoney(),
+      getPlateformesParis(),
+      // Une lecture ratée du stockage ne doit jamais bloquer le formulaire.
+      getLastAgenceId().catch(() => null),
+    ])
+      .then(([a, r, p, derniere]) => {
         setAgences(a)
         setReseaux(r)
         setPlateformes(p)
+
+        // La liste publique ne contient que les agences actives : si
+        // l'agence mémorisée a été désactivée depuis, elle n'y est plus
+        // et on ne la pré-sélectionne pas.
+        if (derniere !== null && a.some(x => x.id === derniere)) {
+          setAgenceId(derniere)
+        } else if (a.length === 1) {
+          setAgenceId(a[0].id)
+        }
       })
       .catch(err => setError(getErrorMessage(err)))
       .finally(() => setLoadingRef(false))
@@ -99,7 +116,7 @@ export function NouvelleDemandeScreen() {
     !submitting
 
   const resetForm = () => {
-    setAgenceId(null)
+    // L'agence est volontairement conservée : le client y reviendra.
     setReseauId(null)
     setPlateformeId(null)
     setMontant('')
@@ -125,6 +142,7 @@ export function NouvelleDemandeScreen() {
         telephone_mobile_money: type === 'retrait' ? telephoneMM.trim() : undefined,
         preuveUri: type === 'depot' ? (preuveUri ?? undefined) : undefined,
       })
+      setLastAgenceId(agenceId).catch(() => {})
       resetForm()
       setSuccess(true)
     } catch (err) {
@@ -190,29 +208,11 @@ export function NouvelleDemandeScreen() {
         </Pressable>
       </View>
 
-      <SelectField
-        label="Agence"
-        placeholder="Choisir une agence"
-        value={agenceId}
-        options={agences.map(a => ({ id: a.id, label: `${a.nom} — ${a.ville}` }))}
-        onChange={setAgenceId}
-      />
+      <ChoixAgence agences={agences} value={agenceId} onChange={setAgenceId} />
 
-      <SelectField
-        label="Réseau mobile money"
-        placeholder="Choisir un réseau"
-        value={reseauId}
-        options={reseaux.map(r => ({ id: r.id, label: r.nom }))}
-        onChange={setReseauId}
-      />
+      <GrilleChoix titre="Réseau mobile money" items={reseaux} value={reseauId} onChange={setReseauId} />
 
-      <SelectField
-        label="Plateforme de paris"
-        placeholder="Choisir une plateforme"
-        value={plateformeId}
-        options={plateformes.map(p => ({ id: p.id, label: p.nom }))}
-        onChange={setPlateformeId}
-      />
+      <GrilleChoix titre="Plateforme de paris" items={plateformes} value={plateformeId} onChange={setPlateformeId} />
 
       <Text style={styles.label}>Montant (F CFA)</Text>
       <TextInput

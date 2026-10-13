@@ -135,12 +135,18 @@ Route::middleware(['idle', 'auth:sanctum', 'role:admin'])->group(function () {
     Route::post('/admin/agences', [ConfigController::class, 'agencesStore']);
     Route::patch('/admin/agences/{agence}', [ConfigController::class, 'agencesUpdate']);
     Route::patch('/admin/agences/{agence}/statut', [ConfigController::class, 'agencesUpdateStatut']);
+    Route::post('/admin/agences/{agence}/photo', [ConfigController::class, 'agencesPhoto']);
+    Route::delete('/admin/agences/{agence}/photo', [ConfigController::class, 'agencesPhotoDestroy']);
 
     Route::get('/admin/reseaux-mobile-money', [ConfigController::class, 'reseauxIndex']);
     Route::post('/admin/reseaux-mobile-money', [ConfigController::class, 'reseauxStore']);
     Route::patch('/admin/reseaux-mobile-money/{reseau}/statut', [ConfigController::class, 'reseauxUpdateStatut']);
+    Route::post('/admin/reseaux-mobile-money/{reseau}/logo', [ConfigController::class, 'reseauxLogo']);
+    Route::delete('/admin/reseaux-mobile-money/{reseau}/logo', [ConfigController::class, 'reseauxLogoDestroy']);
 
     Route::get('/admin/plateformes-paris', [ConfigController::class, 'plateformesIndex']);
     Route::post('/admin/plateformes-paris', [ConfigController::class, 'plateformesStore']);
     Route::patch('/admin/plateformes-paris/{plateforme}/statut', [ConfigController::class, 'plateformesUpdateStatut']);
+    Route::post('/admin/plateformes-paris/{plateforme}/logo', [ConfigController::class, 'plateformesLogo']);
+    Route::delete('/admin/plateformes-paris/{plateforme}/logo', [ConfigController::class, 'plateformesLogoDestroy']);
 });

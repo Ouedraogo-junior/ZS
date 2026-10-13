@@ -8,6 +8,12 @@ import { apiFetch } from './client'
 export interface ReferenceItem {
   id: number
   nom: string
+  /**
+   * URL publique du logo (réseaux et plateformes uniquement). Absent
+   * quand l'élément arrive imbriqué dans une autre réponse (ex. une
+   * demande), null quand aucun logo n'a été envoyé.
+   */
+  logo_url?: string | null
 }
 
 export interface Agence {
@@ -16,6 +22,8 @@ export interface Agence {
   adresse: string
   ville: string
   telephone: string | null
+  /** URL publique de la photo de l'agence, ou null s'il n'y en a pas. */
+  photo_url?: string | null
 }
 
 export function getAgences(): Promise<Agence[]> {

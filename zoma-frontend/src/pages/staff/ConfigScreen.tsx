@@ -3,12 +3,15 @@
 // Configuration réseau — réservé à l'admin : agences, réseaux mobile
 // money, plateformes de paris (CDC section 13/14 : listes configurables,
 // jamais codées en dur).
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { Plus, X } from 'lucide-react'
 import {
   createAgence,
   createPlateforme,
   createReseau,
+  deleteAgencePhoto,
+  deletePlateformeLogo,
+  deleteReseauLogo,
   getAgencesConfig,
   getErrorMessage,
   getPlateformesConfig,
@@ -17,9 +20,130 @@ import {
   updateAgenceStatut,
   updatePlateformeStatut,
   updateReseauStatut,
+  uploadAgencePhoto,
+  uploadPlateformeLogo,
+  uploadReseauLogo,
   type AgenceConfig,
   type ConfigItem,
 } from '@/lib/api'
+import { redimensionnerImage } from '@/lib/imageResize'
+
+/** Aperçu d'une image, ou une tuile avec les initiales quand il n'y en a pas (comme sur le téléphone). */
+function Vignette({
+  url,
+  nom,
+  ajuste,
+  className,
+}: {
+  url: string | null
+  nom: string
+  ajuste: 'contain' | 'cover'
+  className: string
+}) {
+  if (url) {
+    return (
+      <img
+        src={url}
+        alt={nom}
+        className={`${className} flex-shrink-0 bg-white border border-border ${ajuste === 'cover' ? 'object-cover' : 'object-contain'}`}
+      />
+    )
+  }
+  return (
+    <div className={`${className} flex-shrink-0 bg-primary/10 text-primary font-bold text-sm flex items-center justify-center`}>
+      {nom.trim().slice(0, 2).toUpperCase()}
+    </div>
+  )
+}
+
+/**
+ * Bouton d'envoi d'image (logo ou photo) + bouton "Retirer" s'il y en a
+ * déjà une. L'image est réduite dans le navigateur avant l'envoi.
+ */
+function BoutonImage({
+  libelle,
+  existe,
+  maxSide,
+  type,
+  onUpload,
+  onRemove,
+  onError,
+}: {
+  libelle: string
+  existe: boolean
+  maxSide: number
+  type: 'image/png' | 'image/jpeg'
+  onUpload: (fichier: File) => Promise<void>
+  onRemove: () => Promise<void>
+  onError: (message: string) => void
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [occupe, setOccupe] = useState(false)
+
+  const handleFichier = async (e: ChangeEvent<HTMLInputElement>) => {
+    const fichier = e.target.files?.[0]
+    // Vide le champ pour pouvoir choisir deux fois de suite le même fichier.
+    e.target.value = ''
+    if (!fichier) return
+
+    setOccupe(true)
+    let prepare: File
+    try {
+      prepare = await redimensionnerImage(fichier, { maxSide, type })
+    } catch (err) {
+      onError(err instanceof Error ? err.message : 'Image illisible.')
+      setOccupe(false)
+      return
+    }
+
+    try {
+      await onUpload(prepare)
+    } catch (err) {
+      onError(getErrorMessage(err))
+    } finally {
+      setOccupe(false)
+    }
+  }
+
+  const handleRetirer = async () => {
+    setOccupe(true)
+    try {
+      await onRemove()
+    } catch (err) {
+      onError(getErrorMessage(err))
+    } finally {
+      setOccupe(false)
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/svg+xml"
+        className="hidden"
+        onChange={handleFichier}
+      />
+      <button
+        onClick={() => inputRef.current?.click()}
+        disabled={occupe}
+        className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-secondary/10 text-secondary transition-all active:scale-95 disabled:opacity-40"
+      >
+        {occupe ? '...' : existe ? 'Changer' : libelle}
+      </button>
+      {existe && (
+        <button
+          onClick={handleRetirer}
+          disabled={occupe}
+          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-muted/10 text-muted transition-all active:scale-95 disabled:opacity-40"
+        >
+          Retirer
+        </button>
+      )}
+    </div>
+  )
+}
 
 function AgenceModal({
   agence,
@@ -108,12 +232,16 @@ function SimpleConfigList({
   items,
   onCreate,
   onToggle,
+  onUploadLogo,
+  onRemoveLogo,
   placeholder,
 }: {
   title: string
   items: ConfigItem[] | null
   onCreate: (nom: string) => Promise<void>
   onToggle: (item: ConfigItem) => Promise<void>
+  onUploadLogo: (item: ConfigItem, fichier: File) => Promise<void>
+  onRemoveLogo: (item: ConfigItem) => Promise<void>
   placeholder: string
 }) {
   const [newNom, setNewNom] = useState('')
@@ -147,16 +275,28 @@ function SimpleConfigList({
       ) : (
         <div className="flex flex-col gap-2 mb-4">
           {items.map(item => (
-            <div key={item.id} className="flex items-center justify-between bg-background rounded-xl px-4 py-3">
-              <span className="font-medium text-text text-sm">{item.nom}</span>
-              <button
-                onClick={() => onToggle(item)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95 ${
-                  item.statut === 'actif' ? 'bg-danger/10 text-danger' : 'bg-success/10 text-success'
-                }`}
-              >
-                {item.statut === 'actif' ? 'Désactiver' : 'Activer'}
-              </button>
+            <div key={item.id} className="flex items-center gap-3 bg-background rounded-xl px-4 py-3">
+              <Vignette url={item.logo_url} nom={item.nom} ajuste="contain" className="w-10 h-10 rounded-lg" />
+              <span className="flex-1 min-w-0 font-medium text-text text-sm">{item.nom}</span>
+              <div className="flex items-center gap-2 flex-wrap justify-end">
+                <BoutonImage
+                  libelle="Ajouter un logo"
+                  existe={!!item.logo_url}
+                  maxSide={320}
+                  type="image/png"
+                  onUpload={fichier => onUploadLogo(item, fichier)}
+                  onRemove={() => onRemoveLogo(item)}
+                  onError={setError}
+                />
+                <button
+                  onClick={() => onToggle(item)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95 ${
+                    item.statut === 'actif' ? 'bg-danger/10 text-danger' : 'bg-success/10 text-success'
+                  }`}
+                >
+                  {item.statut === 'actif' ? 'Désactiver' : 'Activer'}
+                </button>
+              </div>
             </div>
           ))}
           {items.length === 0 && <p className="text-muted text-sm text-center py-4">Aucun élément pour l'instant.</p>}
@@ -226,6 +366,14 @@ export function ConfigScreen() {
             const updated = await updateReseauStatut(item.id, item.statut === 'actif' ? 'inactif' : 'actif')
             setReseaux(prev => prev?.map(r => r.id === item.id ? updated : r) ?? null)
           }}
+          onUploadLogo={async (item, fichier) => {
+            const updated = await uploadReseauLogo(item.id, fichier)
+            setReseaux(prev => prev?.map(r => r.id === item.id ? updated : r) ?? null)
+          }}
+          onRemoveLogo={async item => {
+            const updated = await deleteReseauLogo(item.id)
+            setReseaux(prev => prev?.map(r => r.id === item.id ? updated : r) ?? null)
+          }}
         />
         <SimpleConfigList
           title="Plateformes de paris"
@@ -237,6 +385,14 @@ export function ConfigScreen() {
           }}
           onToggle={async item => {
             const updated = await updatePlateformeStatut(item.id, item.statut === 'actif' ? 'inactif' : 'actif')
+            setPlateformes(prev => prev?.map(p => p.id === item.id ? updated : p) ?? null)
+          }}
+          onUploadLogo={async (item, fichier) => {
+            const updated = await uploadPlateformeLogo(item.id, fichier)
+            setPlateformes(prev => prev?.map(p => p.id === item.id ? updated : p) ?? null)
+          }}
+          onRemoveLogo={async item => {
+            const updated = await deletePlateformeLogo(item.id)
             setPlateformes(prev => prev?.map(p => p.id === item.id ? updated : p) ?? null)
           }}
         />
@@ -261,11 +417,27 @@ export function ConfigScreen() {
           <div className="flex flex-col gap-2">
             {agences.map(a => (
               <div key={a.id} className="flex flex-col sm:flex-row sm:items-center gap-3 bg-background rounded-xl px-4 py-3">
+                <Vignette url={a.photo_url} nom={a.ville} ajuste="cover" className="w-14 h-14 rounded-xl" />
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-text text-sm">{a.nom}</p>
                   <p className="text-muted text-xs">{a.adresse}, {a.ville}{a.telephone ? ` · ${a.telephone}` : ''}</p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
+                  <BoutonImage
+                    libelle="Ajouter une photo"
+                    existe={!!a.photo_url}
+                    maxSide={800}
+                    type="image/jpeg"
+                    onUpload={async fichier => {
+                      const updated = await uploadAgencePhoto(a.id, fichier)
+                      setAgences(prev => prev?.map(x => x.id === a.id ? updated : x) ?? null)
+                    }}
+                    onRemove={async () => {
+                      const updated = await deleteAgencePhoto(a.id)
+                      setAgences(prev => prev?.map(x => x.id === a.id ? updated : x) ?? null)
+                    }}
+                    onError={setError}
+                  />
                   <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
                     a.statut === 'active' ? 'bg-success/10 text-success' : 'bg-muted/10 text-muted'
                   }`}>

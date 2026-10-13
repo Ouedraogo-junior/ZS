@@ -15,8 +15,22 @@ class ReseauMobileMoney extends Model
 
     protected $fillable = [
         'nom',
+        'logo',
         'statut',
     ];
+
+    /**
+     * Le chemin du fichier reste interne au serveur : l'appli reçoit
+     * "logo_url", l'URL publique du logo (ou null s'il n'y en a pas).
+     */
+    protected $hidden = ['logo'];
+
+    protected $appends = ['logo_url'];
+
+    public function getLogoUrlAttribute(): ?string
+    {
+        return $this->logo ? asset('storage/'.$this->logo) : null;
+    }
 
     public function transactions(): HasMany
     {
