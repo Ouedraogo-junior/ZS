@@ -2,6 +2,7 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { colors } from '../../theme/colors'
+import { Logo } from '../../components/Logo'
 import type { RootStackParamList } from '../../navigation/RootNavigator'
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RoleSelect'>
@@ -9,13 +10,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'RoleSelect'>
 export function RoleSelectScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
-      <View style={styles.logoBox}>
-        <Text style={styles.logoText}>
-          <Text style={{ color: colors.secondary }}>Z</Text>
-          <Text style={{ color: colors.primary }}>S</Text>
-        </Text>
-      </View>
-      <Text style={styles.title}>ZOMA SERVICES</Text>
+      <Logo largeur={240} style={styles.logo} />
       <Text style={styles.subtitle}>Dépôt et retrait pour vos comptes de paris sportifs</Text>
 
       <View style={styles.buttons}>
@@ -38,19 +33,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 24,
   },
-  logoBox: {
-    width: 72,
-    height: 72,
-    borderRadius: 18,
-    backgroundColor: colors.white,
-    borderWidth: 2,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  logoText: { fontSize: 28, fontWeight: '900' },
-  title: { fontSize: 22, fontWeight: '800', color: colors.text },
+  logo: { marginBottom: 12 },
   subtitle: {
     fontSize: 14,
     color: colors.muted,

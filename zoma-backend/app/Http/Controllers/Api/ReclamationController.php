@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Reclamation;
+use App\Support\NoteVocale;
+use App\Support\Push;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -73,15 +75,27 @@ class ReclamationController extends Controller
         );
     }
 
+    /** Sert la note vocale du client — même portée que les autres actions. */
+    public function audio(Request $request, Reclamation $reclamation)
+    {
+        $this->autoriserAcces($request, $reclamation);
+
+        return NoteVocale::servir($reclamation->audio_path);
+    }
+
     /** Prendre en charge une réclamation (s'auto-assigner). */
     public function prendreEnCharge(Request $request, Reclamation $reclamation)
     {
         $this->autoriserAcces($request, $reclamation);
 
+        $ancienStatut = $reclamation->statut;
+
         $reclamation->update([
             'assigne_a_id' => $request->user()->id,
             'statut' => $reclamation->statut === 'nouveau' ? 'en_cours' : $reclamation->statut,
         ]);
+
+        Push::reclamationMiseAJour($reclamation, $ancienStatut);
 
         return response()->json($reclamation->fresh()->load(['agence:id,nom', 'assigneA:id,nom']));
     }
@@ -94,7 +108,11 @@ class ReclamationController extends Controller
             'statut' => ['required', Rule::in(['nouveau', 'en_cours', 'resolu'])],
         ]);
 
+        $ancienStatut = $reclamation->statut;
+
         $reclamation->changerStatut($data['statut']);
+
+        Push::reclamationMiseAJour($reclamation, $ancienStatut);
 
         return response()->json($reclamation->fresh()->load(['agence:id,nom', 'assigneA:id,nom']));
     }

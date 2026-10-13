@@ -44,9 +44,17 @@ export async function sourceNoteVocale(
   demandeId: number,
   messageId: number
 ): Promise<{ uri: string; headers: Record<string, string> }> {
+  return sourceAudio(`${base}/demandes/${demandeId}/messages/${messageId}/audio`)
+}
+
+/**
+ * Même chose pour n'importe quel chemin de l'API qui sert un fichier audio
+ * (ex. la note vocale d'une réclamation : "/client/reclamations/12/audio").
+ */
+export async function sourceAudio(chemin: string): Promise<{ uri: string; headers: Record<string, string> }> {
   const token = await getToken()
   return {
-    uri: `${API_BASE_URL}${base}/demandes/${demandeId}/messages/${messageId}/audio`,
+    uri: `${API_BASE_URL}${chemin}`,
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   }
 }

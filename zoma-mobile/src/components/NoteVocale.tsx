@@ -14,14 +14,17 @@ import { colors } from '../theme/colors'
 import { sourceNoteVocale, type MessagesBase } from '../lib/api'
 import { formaterDuree } from '../lib/noteVocale'
 
-interface Props {
-  base: MessagesBase
-  demandeId: number
-  messageId: number
+type Props = {
   dureeSecondes: number | null
   /** Vrai quand la note est affichée sur un fond foncé (bulle bleue). */
   surFondSombre?: boolean
-}
+} & (
+  // Note d'un fil de messages de demande...
+  | { base: MessagesBase; demandeId: number; messageId: number }
+  // ...ou n'importe quelle autre source : note de réclamation (route
+  // authentifiée) ou enregistrement local pas encore envoyé ({ uri }).
+  | { obtenirSource: () => Promise<AudioSource> }
+)
 
 // --- Une seule note à la fois ---------------------------------------------
 let pauseNoteCourante: (() => void) | null = null
@@ -158,7 +161,8 @@ function LecteurActif({
 }
 
 // --- Composant public ------------------------------------------------------
-export function NoteVocale({ base, demandeId, messageId, dureeSecondes, surFondSombre = false }: Props) {
+export function NoteVocale(props: Props) {
+  const { dureeSecondes, surFondSombre = false } = props
   const [source, setSource] = useState<AudioSource | null>(null)
   const [chargement, setChargement] = useState(false)
   const [erreur, setErreur] = useState<string | null>(null)
@@ -167,7 +171,11 @@ export function NoteVocale({ base, demandeId, messageId, dureeSecondes, surFondS
     setChargement(true)
     setErreur(null)
     try {
-      setSource(await sourceNoteVocale(base, demandeId, messageId))
+      setSource(
+        'obtenirSource' in props
+          ? await props.obtenirSource()
+          : await sourceNoteVocale(props.base, props.demandeId, props.messageId)
+      )
     } catch {
       setErreur('Impossible de charger la note vocale.')
     } finally {

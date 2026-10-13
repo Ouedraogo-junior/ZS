@@ -7,11 +7,9 @@ use App\Events\NouveauMessageDemande;
 use App\Models\DemandeMessage;
 use App\Models\DemandeTransaction;
 use App\Support\Diffusion;
+use App\Support\NoteVocale;
 use App\Support\Push;
-use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 
 /**
  * Enregistrement et lecture des messages d'une demande (texte ou note
@@ -28,7 +26,7 @@ trait GereMessagesDemande
     /** Durée maximale d'une note vocale, en secondes — alignée sur l'appli mobile. */
     protected function dureeMaxNoteVocale(): int
     {
-        return 120;
+        return NoteVocale::DUREE_MAX;
     }
 
     /**
@@ -46,18 +44,7 @@ trait GereMessagesDemande
                 'required_without:message',
                 'file',
                 'max:3072', // 3 Mo — en pratique plafonné par upload_max_filesize de PHP (2 Mo par défaut)
-                // Contrôle par extension plutôt que par type MIME détecté :
-                // une note enregistrée au format AAC (.m4a) est souvent
-                // détectée comme "video/mp4" ou "audio/mp4" selon le
-                // téléphone, ce qui ferait refuser des fichiers valides.
-                function (string $attribut, mixed $valeur, Closure $echec) {
-                    $extensionsAcceptees = ['m4a', 'mp4', 'aac', '3gp', 'amr', 'mp3', 'wav', 'caf'];
-
-                    if (! $valeur instanceof UploadedFile
-                        || ! in_array(strtolower($valeur->getClientOriginalExtension()), $extensionsAcceptees, true)) {
-                        $echec('Format audio non pris en charge.');
-                    }
-                },
+                NoteVocale::regleFormat(),
             ],
             'audio_duree' => ['nullable', 'integer', 'min:1', 'max:'.($this->dureeMaxNoteVocale() + 10)],
         ]);
@@ -84,22 +71,13 @@ trait GereMessagesDemande
         return $message;
     }
 
-    /**
-     * Sert le fichier audio d'un message — authentifié, jamais une URL
-     * publique. response()->file() (et non Storage::response()) : il
-     * gère les requêtes "Range", dont le lecteur du téléphone a besoin
-     * pour lire un .m4a dont l'index est en fin de fichier sans devoir
-     * le télécharger en entier avant de démarrer.
-     */
+    /** Sert le fichier audio d'un message — authentifié, jamais une URL publique. */
     protected function servirAudio(DemandeTransaction $demande, DemandeMessage $message)
     {
         // La route porte deux identifiants : le message doit bien
         // appartenir à CETTE demande (dont l'accès vient d'être vérifié).
         abort_unless((int) $message->demande_transaction_id === (int) $demande->id, 404);
-        abort_unless($message->audio_path && Storage::exists($message->audio_path), 404);
 
-        return response()->file(Storage::path($message->audio_path), [
-            'Content-Type' => Storage::mimeType($message->audio_path) ?: 'audio/mp4',
-        ]);
+        return NoteVocale::servir($message->audio_path);
     }
 }

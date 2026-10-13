@@ -14,18 +14,48 @@ class Reclamation extends Model
 
     protected $fillable = [
         'agence_id',
+        'client_id',
+        'demande_transaction_id',
         'nom_client',
         'contact_client',
         'description',
+        'audio_path',
+        'audio_duree',
         'reference_transaction',
         'piece_jointe',
         'statut',
         'assigne_a_id',
     ];
 
+    /**
+     * Le chemin du fichier audio reste interne au serveur : l'appli ne
+     * reçoit qu'un indicateur "has_audio", puis demande le fichier via une
+     * route authentifiée dédiée (jamais d'URL directe).
+     */
+    protected $hidden = ['audio_path'];
+
+    protected $appends = ['has_audio'];
+
+    public function getHasAudioAttribute(): bool
+    {
+        return $this->audio_path !== null;
+    }
+
     public function agence(): BelongsTo
     {
         return $this->belongsTo(Agence::class);
+    }
+
+    /** Le client qui a fait la réclamation depuis l'appli (null si elle vient du site). */
+    public function client(): BelongsTo
+    {
+        return $this->belongsTo(Client::class);
+    }
+
+    /** La demande concernée, quand la réclamation en vise une précise. */
+    public function demande(): BelongsTo
+    {
+        return $this->belongsTo(DemandeTransaction::class, 'demande_transaction_id');
     }
 
     /**

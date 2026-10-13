@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react'
 import {
   View,
   Text,
+  Pressable,
   FlatList,
   StyleSheet,
   ActivityIndicator,
@@ -17,6 +18,7 @@ import { colors } from '../../theme/colors'
 import { useAuth } from '../../hooks/useAuth'
 import { useTempsReel } from '../../hooks/useTempsReel'
 import { concerneDemande } from '../../lib/realtime'
+import { ouvrirEcran } from '../../navigation/navigationRef'
 import { ComposeurMessage } from '../../components/ComposeurMessage'
 import { NoteVocale } from '../../components/NoteVocale'
 import {
@@ -77,6 +79,13 @@ export function DemandeDetailScreen({ route }: Props) {
 
   const estValidee = demande.statut === 'validee'
 
+  // Le formulaire vit dans l'onglet « Réclamations » : on y passe en emportant la demande.
+  const ouvrirReclamation = () =>
+    ouvrirEcran('Reclamations', 'ReclamationForm', {
+      demandeId,
+      resume: `${demande.type === 'depot' ? 'Dépôt' : 'Retrait'} ${demande.plateforme_paris.nom} · ${demande.montant.toLocaleString('fr-FR')} F CFA`,
+    })
+
   // Même règle que côté agent : la discussion reste ouverte 24h après
   // validation, pour signaler un souci directement ici avant de passer
   // par une réclamation.
@@ -127,8 +136,11 @@ export function DemandeDetailScreen({ route }: Props) {
       {!discussionOuverte ? (
         <View style={styles.inputFerme}>
           <Text style={styles.inputFermeText}>
-            Demande validée — pour tout souci sur cette transaction, contactez votre agence.
+            Demande validée — un souci sur cette transaction ?
           </Text>
+          <Pressable style={styles.reclamer} onPress={ouvrirReclamation}>
+            <Text style={styles.reclamerText}>Faire une réclamation</Text>
+          </Pressable>
         </View>
       ) : (
         <ComposeurMessage
@@ -200,6 +212,8 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
   },
   inputFermeText: { fontSize: 12, color: colors.muted, textAlign: 'center' },
+  reclamer: { marginTop: 10, borderWidth: 1, borderColor: colors.primary, borderRadius: 12, paddingVertical: 10, alignItems: 'center' },
+  reclamerText: { color: colors.primary, fontWeight: '700', fontSize: 13 },
   badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
   badgeAttente: { backgroundColor: '#FEF3C7' },
   badgeValidee: { backgroundColor: '#D1FAE5' },

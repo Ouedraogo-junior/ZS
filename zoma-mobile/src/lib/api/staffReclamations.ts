@@ -21,7 +21,10 @@ export interface Reclamation {
   id: number
   nom_client: string
   contact_client: string
-  description: string
+  /** Absente quand le client a fait sa réclamation uniquement à la voix. */
+  description: string | null
+  has_audio: boolean
+  audio_duree: number | null
   reference_transaction: string | null
   agence_id: number | null
   agence?: { id: number; nom: string } | null

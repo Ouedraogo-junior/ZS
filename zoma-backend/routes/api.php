@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AvisController;
 use App\Http\Controllers\Api\ClientAuthController;
 use App\Http\Controllers\Api\ClientDemandeController;
+use App\Http\Controllers\Api\ClientReclamationController;
 use App\Http\Controllers\Api\ConfigController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\PushTokenController;
@@ -38,6 +39,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/client/demandes/{demande}/id-capture', [ClientDemandeController::class, 'idCapture']);
     Route::get('/client/demandes/{demande}/messages/{message}/audio', [ClientDemandeController::class, 'audioMessage']);
     Route::post('/client/demandes/{demande}/messages', [ClientDemandeController::class, 'storeMessage']);
+
+    // Réclamations faites depuis l'appli — 5 par heure au plus, contre les envois en rafale.
+    Route::get('/client/reclamations', [ClientReclamationController::class, 'index']);
+    Route::post('/client/reclamations', [ClientReclamationController::class, 'store'])->middleware('throttle:5,60');
+    Route::get('/client/reclamations/{reclamation}/audio', [ClientReclamationController::class, 'audio']);
 });
 
 // Enregistrement du téléphone pour les notifications — tout compte connecté
@@ -94,6 +100,7 @@ Route::middleware(['idle', 'auth:sanctum', 'role:gerant,admin'])->group(function
 
     Route::get('/staff/reclamations', [ReclamationController::class, 'index']);
     Route::get('/staff/reclamations/{reclamation}', [ReclamationController::class, 'show']);
+    Route::get('/staff/reclamations/{reclamation}/audio', [ReclamationController::class, 'audio']);
     Route::post('/staff/reclamations/{reclamation}/prendre-en-charge', [ReclamationController::class, 'prendreEnCharge']);
     Route::patch('/staff/reclamations/{reclamation}/statut', [ReclamationController::class, 'updateStatut']);
     Route::post('/staff/reclamations/{reclamation}/messages', [ReclamationController::class, 'storeMessage']);

@@ -22,17 +22,34 @@ export function useNavigationDepuisNotification(navigationPrete: boolean) {
     if (dejaTraitee.current === identifiant) return
     dejaTraitee.current = identifiant
 
-    const donnees = reponse.notification.request.content.data as { demande_id?: unknown; pour?: unknown }
-    if (typeof donnees.demande_id !== 'number') return
-    const demandeId = donnees.demande_id
+    const donnees = reponse.notification.request.content.data as {
+      demande_id?: unknown
+      reclamation_id?: unknown
+      pour?: unknown
+    }
 
     // Notification destinée à l'autre type de compte (le téléphone a changé
     // de propriétaire entre-temps) : on ne l'ouvre pas.
+    const pourClient = donnees.pour === 'client'
+    if (state.status === 'client' ? !pourClient : pourClient) return
+
+    // Réclamation : le client voit la liste de ses réclamations, le gérant
+    // la réclamation elle-même.
+    if (typeof donnees.reclamation_id === 'number') {
+      if (state.status === 'client') {
+        ouvrirEcran('Reclamations', 'ReclamationsListe', {})
+      } else if (state.role === 'gerant') {
+        ouvrirEcran('Reclamations', 'ReclamationDetail', { reclamationId: donnees.reclamation_id })
+      }
+      return
+    }
+
+    if (typeof donnees.demande_id !== 'number') return
+    const demandeId = donnees.demande_id
+
     if (state.status === 'client') {
-      if (donnees.pour === 'personnel') return
       ouvrirEcran('MesDemandes', 'DemandeDetail', { demandeId })
     } else if (state.role === 'agent' || state.role === 'gerant') {
-      if (donnees.pour === 'client') return
       ouvrirEcran('Demandes', 'AgentDemandeDetail', { demandeId })
     }
   }, [reponse, navigationPrete, state])

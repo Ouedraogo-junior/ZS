@@ -8,6 +8,7 @@ use App\Models\Client;
 use App\Models\DemandeMessage;
 use App\Models\DemandeTransaction;
 use App\Models\PushToken;
+use App\Models\Reclamation;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
@@ -27,7 +28,9 @@ use Throwable;
  *  - nouvelle demande     → les agents ET le gérant de l'agence concernée ;
  *  - demande validée      → le client ;
  *  - nouveau message      → l'autre partie (le client si l'auteur est du
- *                           personnel, sinon le personnel de l'agence).
+ *                           personnel, sinon le personnel de l'agence) ;
+ *  - nouvelle réclamation → les gérants de l'agence concernée ;
+ *  - réclamation prise en charge ou résolue → le client qui l'a déposée.
  *
  * Le champ "pour" des données permet à l'appli d'ignorer une notification
  * arrivée sur un téléphone où, entre-temps, un autre type de compte s'est
@@ -97,6 +100,45 @@ class Push
         });
     }
 
+    public static function nouvelleReclamation(Reclamation $reclamation): void
+    {
+        self::apresReponse(function () use ($reclamation) {
+            self::envoyer(
+                self::appareilsDesGerants($reclamation->agence_id),
+                'Nouvelle réclamation',
+                $reclamation->nom_client.' : '.($reclamation->description ? Str::limit($reclamation->description, 100) : 'note vocale'),
+                ['type' => 'nouvelle_reclamation', 'pour' => 'gerant', 'reclamation_id' => $reclamation->id]
+            );
+        });
+    }
+
+    /**
+     * Prévient le client dont la réclamation vient d'être prise en charge
+     * ou résolue. Rien si elle ne vient pas de l'appli (pas de compte à
+     * prévenir), si l'état n'a pas changé, ou si elle repasse à "nouveau".
+     */
+    public static function reclamationMiseAJour(Reclamation $reclamation, string $ancienStatut): void
+    {
+        if (! $reclamation->client_id
+            || $reclamation->statut === $ancienStatut
+            || $reclamation->statut === 'nouveau') {
+            return;
+        }
+
+        self::apresReponse(function () use ($reclamation) {
+            [$titre, $corps] = $reclamation->statut === 'resolu'
+                ? ['Réclamation résolue', 'Votre réclamation a été traitée. Merci de votre patience.']
+                : ['Réclamation prise en charge', "Le gérant s'occupe de votre réclamation."];
+
+            self::envoyer(
+                self::appareilsDuClient((int) $reclamation->client_id),
+                $titre,
+                $corps,
+                ['type' => 'reclamation_mise_a_jour', 'pour' => 'client', 'reclamation_id' => $reclamation->id]
+            );
+        });
+    }
+
     /**
      * Envoie une notification à une liste d'appareils (par lots de 100,
      * maximum accepté par Expo) et supprime ceux qu'Expo déclare morts
@@ -149,6 +191,19 @@ class Push
         return PushToken::query()
             ->where(fn ($q) => $q->where('tokenable_type', (new Agent)->getMorphClass())->whereIn('tokenable_id', $agents))
             ->orWhere(fn ($q) => $q->where('tokenable_type', (new User)->getMorphClass())->whereIn('tokenable_id', $gerants))
+            ->get();
+    }
+
+    /** Gérants actifs d'une agence — ou de toutes si la réclamation n'en précise aucune. */
+    private static function appareilsDesGerants(?int $agenceId): Collection
+    {
+        $gerants = User::where('role', 'gerant')
+            ->where('statut', 'active')
+            ->when($agenceId !== null, fn ($q) => $q->where('agence_id', $agenceId))
+            ->pluck('id');
+
+        return PushToken::where('tokenable_type', (new User)->getMorphClass())
+            ->whereIn('tokenable_id', $gerants)
             ->get();
     }
 

@@ -1,8 +1,9 @@
 // src/screens/shared/StaffLoginScreen.tsx
 import { useState } from 'react'
-import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator } from 'react-native'
 import { colors } from '../../theme/colors'
+import { FormulaireClavier } from '../../components/FormulaireClavier'
+import { Logo } from '../../components/Logo'
 import { useAuth } from '../../hooks/useAuth'
 import { getErrorMessage } from '../../lib/api'
 
@@ -29,11 +30,10 @@ export function StaffLoginScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
+    <FormulaireClavier>
+      <View style={styles.logo}>
+        <Logo largeur={150} />
+      </View>
       <Text style={styles.title}>Connexion</Text>
       <Text style={styles.subtitle}>Agent ou gérant</Text>
 
@@ -59,18 +59,19 @@ export function StaffLoginScreen() {
         keyboardType="number-pad"
         secureTextEntry
         maxLength={4}
+        returnKeyType="done"
+        onSubmitEditing={handleSubmit}
       />
 
       <Pressable style={[styles.button, !canSubmit && styles.buttonDisabled]} onPress={handleSubmit} disabled={!canSubmit}>
         {submitting ? <ActivityIndicator color={colors.white} /> : <Text style={styles.buttonText}>Se connecter</Text>}
       </Pressable>
-    </KeyboardAvoidingView>
-    </SafeAreaView>
+    </FormulaireClavier>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.white, padding: 24, justifyContent: 'center' },
+  logo: { alignItems: 'center', marginBottom: 20 },
   title: { fontSize: 24, fontWeight: '800', color: colors.text },
   subtitle: { fontSize: 14, color: colors.muted, marginTop: 6, marginBottom: 24 },
   error: {

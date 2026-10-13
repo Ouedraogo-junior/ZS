@@ -3,26 +3,36 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { getFocusedRouteNameFromRoute, type NavigatorScreenParams } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { PlusCircle, ClipboardList, User } from 'lucide-react-native'
+import { PlusCircle, ClipboardList, MessageSquareWarning, User } from 'lucide-react-native'
 import { colors } from '../theme/colors'
 import { NouvelleDemandeScreen } from '../screens/client/NouvelleDemandeScreen'
 import { MesDemandesScreen } from '../screens/client/MesDemandesScreen'
 import { DemandeDetailScreen } from '../screens/client/DemandeDetailScreen'
 import { ClientProfileScreen } from '../screens/client/ClientProfileScreen'
+import { MesReclamationsScreen } from '../screens/client/MesReclamationsScreen'
+import { ReclamationFormScreen } from '../screens/client/ReclamationFormScreen'
 
 export type MesDemandesStackParamList = {
   MesDemandesListe: undefined
   DemandeDetail: { demandeId: number }
 }
 
+export type ReclamationsClientStackParamList = {
+  ReclamationsListe: undefined
+  /** Avec demandeId : réclamation sur cette demande (resume = ligne affichée) ; sans : le client choisit l'agence. */
+  ReclamationForm: { demandeId?: number; resume?: string } | undefined
+}
+
 export type ClientTabParamList = {
   NouvelleDemande: undefined
   MesDemandes: NavigatorScreenParams<MesDemandesStackParamList> | undefined
+  Reclamations: NavigatorScreenParams<ReclamationsClientStackParamList> | undefined
   Profil: undefined
 }
 
 const Tab = createBottomTabNavigator<ClientTabParamList>()
 const MesDemandesStack = createNativeStackNavigator<MesDemandesStackParamList>()
+const ReclamationsStack = createNativeStackNavigator<ReclamationsClientStackParamList>()
 
 function MesDemandesStackScreen() {
   return (
@@ -34,6 +44,19 @@ function MesDemandesStackScreen() {
         options={{ headerShown: true, title: 'Détail de la demande' }}
       />
     </MesDemandesStack.Navigator>
+  )
+}
+
+function ReclamationsStackScreen() {
+  return (
+    <ReclamationsStack.Navigator screenOptions={{ headerShown: false, headerTintColor: colors.primary }}>
+      <ReclamationsStack.Screen name="ReclamationsListe" component={MesReclamationsScreen} />
+      <ReclamationsStack.Screen
+        name="ReclamationForm"
+        component={ReclamationFormScreen}
+        options={{ headerShown: true, title: 'Nouvelle réclamation' }}
+      />
+    </ReclamationsStack.Navigator>
   )
 }
 
@@ -94,6 +117,36 @@ export function ClientNavigator() {
             if (pileInterne && pileInterne.index! > 0) {
               e.preventDefault()
               navigation.navigate('MesDemandes', { screen: 'MesDemandesListe' })
+            }
+          },
+        })}
+      />
+      <Tab.Screen
+        name="Reclamations"
+        component={ReclamationsStackScreen}
+        options={({ route }) => {
+          // La barre d'onglets est masquée sur le formulaire (le clavier la
+          // ferait remonter au-dessus des champs).
+          const focusedRoute = getFocusedRouteNameFromRoute(route) ?? 'ReclamationsListe'
+          return {
+            title: 'Réclamations',
+            tabBarIcon: ({ color, size }) => <MessageSquareWarning color={color} size={size} />,
+            tabBarStyle: focusedRoute === 'ReclamationForm' ? { display: 'none' } : tabBarStyleNormal,
+            // Montée dès le démarrage : une notification ou le bouton d'une
+            // demande peut ouvrir le formulaire sans que l'onglet ait jamais
+            // été affiché — la liste doit alors déjà être sous le formulaire.
+            lazy: false,
+          }
+        }}
+        listeners={({ navigation }) => ({
+          tabPress: e => {
+            const state = navigation.getState()
+            const route = state.routes.find(r => r.name === 'Reclamations')
+            const pileInterne = route && 'state' in route ? route.state : undefined
+
+            if (pileInterne && pileInterne.index! > 0) {
+              e.preventDefault()
+              navigation.navigate('Reclamations', { screen: 'ReclamationsListe' })
             }
           },
         })}
