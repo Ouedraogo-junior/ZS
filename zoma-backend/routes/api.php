@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\ClientAuthController;
 use App\Http\Controllers\Api\ClientDemandeController;
 use App\Http\Controllers\Api\ConfigController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\PushTokenController;
 use App\Http\Controllers\Api\ReclamationController;
 use App\Http\Controllers\Api\ReferenceController;
 use App\Http\Controllers\Api\ReleveController;
@@ -37,6 +38,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/client/demandes/{demande}/id-capture', [ClientDemandeController::class, 'idCapture']);
     Route::get('/client/demandes/{demande}/messages/{message}/audio', [ClientDemandeController::class, 'audioMessage']);
     Route::post('/client/demandes/{demande}/messages', [ClientDemandeController::class, 'storeMessage']);
+});
+
+// Enregistrement du téléphone pour les notifications — tout compte connecté
+// (client, agent, gérant) ; pas de middleware "idle" : ce n'est pas une
+// activité de l'utilisateur, juste l'appli qui s'identifie au démarrage.
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/push-token', [PushTokenController::class, 'store']);
+    Route::delete('/push-token', [PushTokenController::class, 'destroy']);
 });
 
 // Formulaires et listes publics (site vitrine) — aucune authentification requise.

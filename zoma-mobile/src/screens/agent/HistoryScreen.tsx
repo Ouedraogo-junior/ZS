@@ -96,7 +96,7 @@ export function HistoryScreen({ navigation, base = '/agent', showHeader = true }
           onEndReachedThreshold={0.4}
           onEndReached={onEndReached}
           ListEmptyComponent={<Text style={styles.empty}>Aucune transaction pour l'instant.</Text>}
-          ListFooterComponent={loadingMore ? <ActivityIndicator style={{ marginVertical: 16 }} color={colors.primary} /> : null}
+          ListFooterComponent={loadingMore ? <ActivityIndicator style={{ marginVertical: 16 }} color={colors.primary} /> : undefined}
           renderItem={({ item }) => {
             const demandeId = item.demande?.id
             const peutOuvrir = base === '/agent' && !!demandeId && !!navigation

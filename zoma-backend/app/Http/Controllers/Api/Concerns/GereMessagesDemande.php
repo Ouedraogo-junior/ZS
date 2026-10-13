@@ -7,6 +7,7 @@ use App\Events\NouveauMessageDemande;
 use App\Models\DemandeMessage;
 use App\Models\DemandeTransaction;
 use App\Support\Diffusion;
+use App\Support\Push;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -78,6 +79,7 @@ trait GereMessagesDemande
         ]);
 
         Diffusion::emettre(new NouveauMessageDemande($message));
+        Push::nouveauMessage($message);
 
         return $message;
     }

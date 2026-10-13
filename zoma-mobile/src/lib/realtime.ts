@@ -16,6 +16,12 @@ import Pusher, { type Channel } from 'pusher-js'
 import { getToken } from './storage'
 import { ORIGINE_API, REVERB_ACTIF, REVERB_APP_KEY, REVERB_HOTE, REVERB_PORT, REVERB_TLS } from './realtimeConfig'
 
+// Le build React Native de pusher-js n'a PAS d'export par défaut : il
+// exporte { Pusher } (export nommé). Un « import Pusher from 'pusher-js' »
+// donne alors l'objet { Pusher } et non la classe, d'où l'erreur « Object
+// cannot be used as a constructor ». On prend la classe là où elle est.
+const ClassePusher: typeof Pusher = (Pusher as unknown as { Pusher?: typeof Pusher }).Pusher ?? Pusher
+
 export type Gestionnaire = (donnees: unknown) => void
 export type Evenements = Record<string, Gestionnaire>
 
@@ -41,11 +47,28 @@ function notifierResync() {
   })
 }
 
+let aExpliqueLInactivite = false
+
 function obtenirClient(): Pusher | null {
-  if (!REVERB_ACTIF) return null
+  if (!REVERB_ACTIF) {
+    // Un temps réel muet est impossible à diagnostiquer : on dit pourquoi, une fois.
+    if (__DEV__ && !aExpliqueLInactivite) {
+      aExpliqueLInactivite = true
+      console.warn(
+        REVERB_HOTE === ''
+          ? `[temps réel] DÉSACTIVÉ : adresse de l'API illisible (« ${ORIGINE_API} »). Vérifiez API_BASE_URL dans lib/config.ts.`
+          : '[temps réel] DÉSACTIVÉ : la clé REVERB_APP_KEY n\'est pas renseignée dans lib/realtimeConfig.ts.'
+      )
+    }
+    return null
+  }
   if (client) return client
 
-  const pusher = new Pusher(REVERB_APP_KEY, {
+  if (__DEV__) {
+    console.log(`[temps réel] connexion à ${REVERB_TLS ? 'wss' : 'ws'}://${REVERB_HOTE}:${REVERB_PORT}/app/${REVERB_APP_KEY}`)
+  }
+
+  const pusher = new ClassePusher(REVERB_APP_KEY, {
     cluster: 'mt1', // exigé par les types, sans effet : on fournit wsHost
     wsHost: REVERB_HOTE,
     wsPort: REVERB_PORT,
@@ -111,9 +134,13 @@ export function ecouter(nomCanal: string, evenements: Evenements): () => void {
 
   const nomComplet = `private-${nomCanal}`
   let abonnement = abonnements.get(nomComplet)
+  if (__DEV__) console.log(`[temps réel] écoute de ${nomComplet}`)
 
   if (!abonnement) {
     const canal = pusher.subscribe(nomComplet)
+    canal.bind('pusher:subscription_succeeded', () => {
+      if (__DEV__) console.log(`[temps réel] accès accordé à ${nomComplet}`)
+    })
     canal.bind('pusher:subscription_error', (erreur: unknown) => {
       if (__DEV__) console.warn(`[temps réel] accès refusé à ${nomComplet}`, erreur)
     })
@@ -123,7 +150,12 @@ export function ecouter(nomCanal: string, evenements: Evenements): () => void {
 
   abonnement.nombre += 1
   const { canal } = abonnement
-  Object.entries(evenements).forEach(([nom, gestionnaire]) => canal.bind(nom, gestionnaire))
+  Object.entries(evenements).forEach(([nom, gestionnaire]) =>
+    canal.bind(nom, (donnees: unknown) => {
+      if (__DEV__) console.log(`[temps réel] événement « ${nom} » reçu sur ${nomComplet}`)
+      gestionnaire(donnees)
+    })
+  )
 
   return () => {
     Object.entries(evenements).forEach(([nom, gestionnaire]) => canal.unbind(nom, gestionnaire))

@@ -1,7 +1,7 @@
 // src/navigation/GerantNavigator.tsx
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
-import { getFocusedRouteNameFromRoute } from '@react-navigation/native'
+import { getFocusedRouteNameFromRoute, type NavigatorScreenParams } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { LayoutDashboard, Inbox, MessageSquareWarning, User } from 'lucide-react-native'
 import { colors } from '../theme/colors'
@@ -18,9 +18,9 @@ import type { ReclamationsStackParamList } from './ReclamationsTypes'
 import type { GerantDashboardStackParamList } from './GerantDashboardTypes'
 
 export type GerantTabParamList = {
-  Dashboard: undefined
-  Demandes: undefined
-  Reclamations: undefined
+  Dashboard: NavigatorScreenParams<GerantDashboardStackParamList> | undefined
+  Demandes: NavigatorScreenParams<AgentDemandesStackParamList> | undefined
+  Reclamations: NavigatorScreenParams<ReclamationsStackParamList> | undefined
   Profil: undefined
 }
 

@@ -11,6 +11,7 @@ use App\Models\DemandeMessage;
 use App\Models\DemandeTransaction;
 use App\Models\User;
 use App\Support\Diffusion;
+use App\Support\Push;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -91,6 +92,7 @@ class AgentDemandeController extends Controller
         $demande->refresh();
 
         Diffusion::emettre(new DemandeValidee($demande));
+        Push::demandeValidee($demande);
 
         // Mêmes relations que show() — sinon le frontend, qui remplace
         // la demande entière par cette réponse, perd reseau_mobile_money

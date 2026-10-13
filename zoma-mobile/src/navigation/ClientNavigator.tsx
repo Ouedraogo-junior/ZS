@@ -1,7 +1,7 @@
 // src/navigation/ClientNavigator.tsx
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
-import { getFocusedRouteNameFromRoute } from '@react-navigation/native'
+import { getFocusedRouteNameFromRoute, type NavigatorScreenParams } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { PlusCircle, ClipboardList, User } from 'lucide-react-native'
 import { colors } from '../theme/colors'
@@ -17,7 +17,7 @@ export type MesDemandesStackParamList = {
 
 export type ClientTabParamList = {
   NouvelleDemande: undefined
-  MesDemandes: undefined
+  MesDemandes: NavigatorScreenParams<MesDemandesStackParamList> | undefined
   Profil: undefined
 }
 

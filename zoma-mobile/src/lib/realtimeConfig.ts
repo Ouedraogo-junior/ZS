@@ -30,4 +30,4 @@ export const REVERB_PORT = morceaux?.[3] ? parseInt(morceaux[3], 10) : REVERB_TL
 /** Racine du serveur (sans "/api") : là où Laravel expose /broadcasting/auth. */
 export const ORIGINE_API = API_BASE_URL.replace(/\/api\/?$/, '')
 
-export const REVERB_ACTIF = REVERB_HOTE !== '' && !REVERB_APP_KEY.startsWith('766f64545b3737b03824f8ad28dc18eb')
+export const REVERB_ACTIF = REVERB_HOTE !== '' && /^[A-Za-z0-9]+$/.test(REVERB_APP_KEY)

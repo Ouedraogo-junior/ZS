@@ -18,6 +18,7 @@ import {
 } from '../lib/api'
 import { getSessionType, clearSession } from '../lib/storage'
 import { fermerTempsReel } from '../lib/realtime'
+import { enregistrerAppareilPush, desenregistrerAppareilPush } from '../lib/push'
 
 type AuthState =
   | { status: 'loading' }
@@ -39,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     const type = await getSessionType()
+    await desenregistrerAppareilPush()
     try {
       if (type === 'client') await apiLogoutClient()
       else if (type === 'staff') await apiLogoutStaff()
@@ -66,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const client = await getClientMe()
           setState({ status: 'client', client })
+          void enregistrerAppareilPush()
           return
         } catch {
           await clearSession()
@@ -74,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const { role, profile } = await getStaffMe()
           setState({ status: 'staff', role, profile })
+          void enregistrerAppareilPush()
           return
         } catch {
           await clearSession()
@@ -87,11 +91,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginAsClient = useCallback(async (nom: string, telephone: string) => {
     const client = await apiLoginClient(nom, telephone)
     setState({ status: 'client', client })
+    void enregistrerAppareilPush()
   }, [])
 
   const loginAsStaff = useCallback(async (pseudo: string, pin: string) => {
     const { role, profile } = await apiLoginStaff(pseudo, pin)
     setState({ status: 'staff', role, profile })
+    void enregistrerAppareilPush()
   }, [])
 
   return (

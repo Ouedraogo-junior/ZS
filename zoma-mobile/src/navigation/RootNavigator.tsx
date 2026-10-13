@@ -1,8 +1,11 @@
 // src/navigation/RootNavigator.tsx
+import { useState } from 'react'
 import { NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { ActivityIndicator, View } from 'react-native'
 import { useAuth } from '../hooks/useAuth'
+import { useNavigationDepuisNotification } from '../hooks/useNavigationDepuisNotification'
+import { navigationRef } from './navigationRef'
 import { colors } from '../theme/colors'
 import { RoleSelectScreen } from '../screens/shared/RoleSelectScreen'
 import { ClientLoginScreen } from '../screens/client/ClientLoginScreen'
@@ -22,6 +25,8 @@ const Stack = createNativeStackNavigator<RootStackParamList>()
 
 export function RootNavigator() {
   const { state } = useAuth()
+  const [navigationPrete, setNavigationPrete] = useState(false)
+  useNavigationDepuisNotification(navigationPrete)
 
   if (state.status === 'loading') {
     return (
@@ -32,7 +37,7 @@ export function RootNavigator() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef} onReady={() => setNavigationPrete(true)}>
       {state.status === 'guest' && (
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="RoleSelect" component={RoleSelectScreen} />
