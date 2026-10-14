@@ -4,7 +4,8 @@
 // et admin (toutes). Mobile : liste puis détail plein écran avec retour.
 // Desktop (lg+) : les deux côte à côte.
 import { useEffect, useState } from 'react'
-import { ArrowLeft, MessageCircle, Send } from 'lucide-react'
+import { ArrowLeft, MessageCircle, Mic, Send } from 'lucide-react'
+import { NoteVocaleReclamation } from '@/components/common/NoteVocaleReclamation'
 import {
   getErrorMessage,
   getReclamation,
@@ -178,7 +179,13 @@ export function ReclamationsScreen() {
                       {statutLabel(r.statut)}
                     </span>
                   </div>
-                  <p className="text-muted text-xs line-clamp-2">{r.description}</p>
+                  <p className="text-muted text-xs line-clamp-2">
+                    {r.description ?? (
+                      <span className="inline-flex items-center gap-1">
+                        <Mic size={12} /> Note vocale
+                      </span>
+                    )}
+                  </p>
                   <div className="flex items-center justify-between mt-2">
                     <span className="text-muted text-[10px]">{r.agence?.nom ?? 'Agence non précisée'}</span>
                     <span className="text-muted text-[10px]">
@@ -228,7 +235,10 @@ export function ReclamationsScreen() {
               {detailError && <p className="text-danger text-sm text-center bg-danger/10 py-2.5 px-3 m-4 rounded-xl">{detailError}</p>}
 
               <div className="px-4 lg:px-6 py-4 bg-background border-b border-border">
-                <p className="text-text text-sm leading-relaxed">{detail.description}</p>
+                {detail.description && <p className="text-text text-sm leading-relaxed">{detail.description}</p>}
+                {detail.has_audio && (
+                  <NoteVocaleReclamation reclamationId={detail.id} dureeSecondes={detail.audio_duree} />
+                )}
                 <div className="flex items-center justify-between mt-3">
                   <span className="text-muted text-xs">
                     {detail.assigne_a ? `Pris en charge par ${detail.assigne_a.nom}` : 'Non pris en charge'}

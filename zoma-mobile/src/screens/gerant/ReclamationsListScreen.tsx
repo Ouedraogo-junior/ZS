@@ -94,7 +94,9 @@ export function ReclamationsListScreen({ navigation }: Props) {
                 <Text style={styles.cardTitle}>{item.nom_client}</Text>
                 <StatutBadge statut={item.statut} />
               </View>
-              <Text style={styles.cardDescription} numberOfLines={2}>{item.description}</Text>
+              <Text style={styles.cardDescription} numberOfLines={2}>
+                {item.description ?? (item.has_audio ? '🎤 Note vocale' : '')}
+              </Text>
               <Text style={styles.cardMeta}>
                 {item.agence?.nom ?? 'Sans agence précisée'} ·{' '}
                 {new Date(item.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}

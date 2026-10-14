@@ -106,6 +106,37 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   return body as T
 }
 
+/**
+ * Télécharge un fichier protégé (ex. une note vocale) : la route exige le
+ * jeton, donc une simple balise <audio src="..."> ne peut pas la charger.
+ * On récupère le fichier avec l'en-tête Authorization, puis l'appelant en
+ * fait une URL locale (URL.createObjectURL).
+ */
+export async function apiFetchBlob(path: string): Promise<Blob> {
+  const token = getToken()
+
+  let response: Response
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      // Accept JSON : une erreur (403, 404...) revient en JSON, jamais en
+      // redirection vers une page de connexion.
+      headers: { Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    })
+  } catch {
+    throw new ApiError('Impossible de contacter le serveur. Vérifiez votre connexion.', 0)
+  }
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      setToken(null)
+      onUnauthorized?.()
+    }
+    throw new ApiError(fallbackMessage(response.status), response.status)
+  }
+
+  return response.blob()
+}
+
 /** Message à afficher pour n'importe quelle erreur attrapée d'un appel apiFetch. */
 export function getErrorMessage(err: unknown): string {
   if (err instanceof ApiError) return err.message

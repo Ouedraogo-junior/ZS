@@ -18,8 +18,10 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { MessageCircle } from 'lucide-react-native'
 import { colors } from '../../theme/colors'
+import { NoteVocale } from '../../components/NoteVocale'
 import { versNumeroWhatsApp } from '../../lib/phone'
 import {
+  sourceAudio,
   getReclamation,
   prendreEnCharge,
   updateReclamationStatut,
@@ -127,7 +129,16 @@ export function ReclamationDetailScreen({ route }: Props) {
             </Pressable>
           </View>
           <Text style={styles.contact}>{reclamation.contact_client}</Text>
-          <Text style={styles.description}>{reclamation.description}</Text>
+          {!!reclamation.description && <Text style={styles.description}>{reclamation.description}</Text>}
+          {reclamation.has_audio && (
+            <View style={styles.vocal}>
+              <Text style={styles.vocalLabel}>Note vocale du client</Text>
+              <NoteVocale
+                dureeSecondes={reclamation.audio_duree}
+                obtenirSource={() => sourceAudio(`/staff/reclamations/${reclamation.id}/audio`)}
+              />
+            </View>
+          )}
 
           {reclamation.reference_transaction && (
             <View style={styles.infoRow}>
@@ -220,6 +231,8 @@ const styles = StyleSheet.create({
   },
   contact: { fontSize: 13, color: colors.secondary, fontWeight: '600', marginTop: 2, marginBottom: 10 },
   description: { fontSize: 14, color: colors.text, lineHeight: 20, marginBottom: 12 },
+  vocal: { marginBottom: 14, backgroundColor: colors.background, borderRadius: 12, padding: 12 },
+  vocalLabel: { fontSize: 12, fontWeight: '700', color: colors.muted, marginBottom: 8 },
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
   infoLabel: { fontSize: 13, color: colors.muted },
   infoValue: { fontSize: 13, fontWeight: '700', color: colors.text },

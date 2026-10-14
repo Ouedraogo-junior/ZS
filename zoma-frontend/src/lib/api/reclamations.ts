@@ -1,6 +1,6 @@
 // src/lib/api/reclamations.ts
 
-import { apiFetch } from './client'
+import { apiFetch, apiFetchBlob } from './client'
 
 export type ReclamationStatut = 'nouveau' | 'en_cours' | 'resolu'
 
@@ -8,7 +8,10 @@ export interface Reclamation {
   id: number
   nom_client: string
   contact_client: string
-  description: string
+  /** Absente quand le client a fait sa réclamation uniquement à la voix (appli mobile). */
+  description: string | null
+  has_audio: boolean
+  audio_duree: number | null
   reference_transaction: string | null
   statut: ReclamationStatut
   agence: { id: number; nom: string } | null
@@ -46,6 +49,11 @@ export function submitReclamation(data: NewReclamationInput): Promise<Reclamatio
     method: 'POST',
     body: JSON.stringify(data),
   })
+}
+
+/** Note vocale du client (réclamation faite depuis l'appli) — fichier protégé par le jeton. */
+export function getAudioReclamation(id: number): Promise<Blob> {
+  return apiFetchBlob(`/staff/reclamations/${id}/audio`)
 }
 
 export function getReclamation(id: number): Promise<ReclamationDetail> {
